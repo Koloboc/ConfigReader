@@ -1,7 +1,13 @@
 #include "conf.h"
 #include "functions.h"
 
-struct _section *sec = NULL;
+struct _section *default_sec = NULL;
+
+#ifndef DEFAULT_NAME_SEC
+	const char *default_name = "GLOBAL";
+#else
+	const char *default_name = DEFAULT_NAME_SEC;
+#endif
 
 int read_file(const char* namefile){
 	FILE *fp;
@@ -30,11 +36,11 @@ int read_file(const char* namefile){
 
 	size_t used_buf = 0;
 
-	sec = (struct _section*)malloc(sizeof(struct _section));
-	memset(sec, 0, sizeof(struct _section));
-	sec->name = strdup(default_name_sec);
-
-	struct _section* cur_sec = sec;
+	default_sec = (struct _section*)malloc(sizeof(struct _section));
+	memset(default_sec, 0, sizeof(struct _section));
+	default_sec->name = strdup(default_name);
+	 
+	struct _section* cur_sec = default_sec;
 
 	while(fgets(buf, size_buf, fp))
 	{
@@ -131,7 +137,7 @@ int read_file(const char* namefile){
 }
 
 struct _section* find_section(const char *namesec){
-	struct _section *cur_sec = sec;
+	struct _section *cur_sec = default_sec;
 	while(cur_sec){
 		if(cur_sec->name && (strcmp(cur_sec->name, namesec) == 0)){
 			return cur_sec;
@@ -181,10 +187,10 @@ void print_conf(struct _section *section){
 	struct _item *curitem = NULL;
 
 	while(cursec){
-		fprintf(stdout, "section name: '%s'\n", cursec->name);
+		fprintf(stdout, "section name: ['%s']\n", cursec->name);
 		curitem = cursec->itemlist;
 		while(curitem){
-			fprintf(stdout, "param name: '%s', value: '%s'\n", curitem->name, curitem->value);
+			fprintf(stdout, "\tparam name: '%s' = '%s'\n", curitem->name, curitem->value);
 			curitem = curitem->next;
 		}
 		cursec = cursec->next;

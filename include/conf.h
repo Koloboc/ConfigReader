@@ -10,7 +10,6 @@
 #define VALUE_SEPARATOR_CHAR '='
 #define START_SECTION_CHAR '['
 #define STOP_SECTION_CHAR ']'
-#define default_name_sec "GLOBAL"
 
 struct _item{
 	char *name;
@@ -23,7 +22,6 @@ struct _section{
 	struct _item *itemlist;
 	struct _section * next;
 };
-struct _section *default_sec;
 
 int read_file(const char* namefile);
 struct _section* find_section(const char *namesec);

@@ -3,12 +3,21 @@ project(config)
 
 set(PROJECT_TARGET config)
 
+#set (CMAKE_C_FLAGS "-DDEFAULT_NAME_SEC='MAIN' -g3 -Wall ${CMAKE_C_FLAGS}")
 file(GLOB LIST_SOURCES "src/*.c")
-include_directories(include)
+file(GLOB LIST_HEADERS "include/*.h")
 
-add_definitions(-g3 -Wall -lm)
-add_executable(${PROJECT_TARGET} ${LIST_SOURCES})
-#target_link_libraries(${PROJECT_TARGET} m)
+
+add_executable(${PROJECT_TARGET} ${LIST_SOURCES} ${LIST_HEADERS})
+
+target_include_directories(${PROJECT_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+if(DEFAULT_NAME_SEC)
+	target_compile_options(${PROJECT_TARGET} PUBLIC -DDEFAULT_NAME_SEC=\"${DEFAULT_NAME_SEC}\")
+endif()
+
+target_compile_options(${PROJECT_TARGET} PUBLIC -Wall)
+
 set_target_properties(${PROJECT_TARGET}
     PROPERTIES
     ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/"
