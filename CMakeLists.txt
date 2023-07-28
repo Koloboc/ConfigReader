@@ -16,6 +16,10 @@ if(DEFAULT_NAME_SEC)
 	target_compile_options(${PROJECT_TARGET} PUBLIC -DDEFAULT_NAME_SEC=\"${DEFAULT_NAME_SEC}\")
 endif()
 
+if(VALUE_SEPARATOR_CHAR)
+	target_compile_options(${PROJECT_TARGET} PUBLIC -DVALUE_SEPARATOR_CHAR=\"${VALUE_SEPARATOR_CHAR}\")
+endif()
+
 target_compile_options(${PROJECT_TARGET} PUBLIC -Wall)
 
 set_target_properties(${PROJECT_TARGET}

@@ -9,27 +9,34 @@ struct _section *default_sec = NULL;
 	const char *default_name = DEFAULT_NAME_SEC;
 #endif
 
+#ifndef VALUE_SEPARATOR_CHAR 
+	const char *separator_char = "=\0";
+#else
+	const char *separator_char = VALUE_SEPARATOR_CHAR;
+#endif
+
 int read_file(const char* namefile){
+		printf("SEPARATORCHAR = '%s'\n", separator_char);
 	FILE *fp;
 	size_t size_buf = SIZE_BUF;
 	int count_lines = 0;
 
 	if(!namefile)
 	{
-		fprintf(stderr, "Error open file settings (no name)\n");
+		fprintf(stderr, "Error open config file (no name)\n");
 		return -1;
 	}
 
 	if(! (fp = fopen(namefile, "r")))
 	{
-		fprintf(stderr, "Error open file settings: %s\n", namefile);
+		fprintf(stderr, "Error open config file settings: %s\n", namefile);
 		return -1;
 	}
 
 	char *buf = (char*)malloc(size_buf);
 	if(!buf)
 	{
-		fprintf(stderr, "Error malloc buf\n");
+		fprintf(stderr, "Error malloc buf for config\n");
 		fclose(fp);
 		return -1;
 	}
@@ -58,7 +65,7 @@ int read_file(const char* namefile){
 		char *pos_dies = strchr(trimbuf, COMMENT_CHAR);
 		char *pos_sec = strchr(trimbuf, START_SECTION_CHAR);
 		char *pos_end_sec = strchr(trimbuf, STOP_SECTION_CHAR);
-		char *pos_eq = strchr(trimbuf, VALUE_SEPARATOR_CHAR);
+		char *pos_eq = strchr(trimbuf, separator_char[0]);
 
 		if(pos_dies){		// Любой текст после #, игнорируем
 		   pos_dies[0] = '\0';
@@ -99,7 +106,7 @@ int read_file(const char* namefile){
 			pos_eq[0] = '\0';
 			pos_eq++;
 		}else{
-			fprintf(stderr, "Error parsing line %d:%s config file %s\n", count_lines, buf, namefile);
+			//fprintf(stderr, "Error parsing line %d:%s config file %s\n", count_lines, buf, namefile);
 			continue;
 		}
 		if(strlen(trimbuf)){
@@ -158,6 +165,44 @@ struct _item *find_item(const struct _section *section, const char *nameitem){
 	return it;
 }
 
+int get_val_as_str(const char *name_sec, const char *name, char **val){
+	int ret = 0;
+	struct _section *sec = find_section(name_sec);
+	struct _item *it = NULL;
+	if(sec){ 
+		it = find_item(sec, name);
+		if(it){
+			*val = it->value;
+			ret = 1;
+		}
+	}
+	return ret;
+}
+
+int get_val_as_int(const char *name_sec, const char *name, int **val){
+	int ret = 0;
+
+	char *c_val;
+
+	if(get_val_as_str(name_sec, name, &c_val)){
+		**val = atoi(c_val);
+		ret = 1;
+	}
+	return ret;
+}
+
+int get_val_as_float(const char *name_sec, const char *name, float **val){
+	int ret = 0;
+
+	char *c_val;
+
+	if(get_val_as_str(name_sec, name, &c_val)){
+		**val = atof(c_val);
+		ret = 1;
+	}
+	return ret;
+}
+
 void delete_config(struct _section *section){
 	struct _item *it = NULL;
 	struct _item *temp = NULL;
@@ -166,18 +211,14 @@ void delete_config(struct _section *section){
 	while(section){
 		it = section->itemlist;
 		while(it){
-			//printf("delete name: %s in section: %s\n", it->name, section->name);
 			if(it->name) free(it->name);
-			//printf("delete value: %s in section: %s\n", it->value, section->name);
 			if(it->value) free(it->value);
 			temp = it->next;
 			free(it);
 			it = temp;
 		}
 		tempsec = section->next;
-		//printf("delete name section: %s\n", section->name);
 		free(section->name);
-		//printf("delete section\n");
 		free(section);
 		section = tempsec;
 	}
