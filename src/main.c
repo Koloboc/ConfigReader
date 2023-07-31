@@ -12,10 +12,10 @@ int main(int argc, char* argv[]){
 		fprintf(stderr, "read file error %s\n", argv[1]);
 	}
 	struct _section *conf = default_sec;
-	char *val;
+	float *val;
 
-	if(get_val_as_str("GLOBAL", "DocumentRoot", &val) == 1){
-		printf("GLOBAL DocumentRoot = %s\n", val);
+	if(get_val_as_float("SECTION 2", "LR", &val)){
+		printf("GLOBAL LR = %f\n", *val);
 	}else{
 		printf("FIND ERROR\n");
 	}

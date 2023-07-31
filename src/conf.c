@@ -1,3 +1,4 @@
+#include <errno.h>
 #include "conf.h"
 #include "functions.h"
 
@@ -10,7 +11,7 @@ struct _section *default_sec = NULL;
 #endif
 
 #ifndef VALUE_SEPARATOR_CHAR 
-	const char *separator_char = "=\0";
+	const char *separator_char = "=";
 #else
 	const char *separator_char = VALUE_SEPARATOR_CHAR;
 #endif
@@ -166,41 +167,38 @@ struct _item *find_item(const struct _section *section, const char *nameitem){
 }
 
 int get_val_as_str(const char *name_sec, const char *name, char **val){
-	int ret = 0;
 	struct _section *sec = find_section(name_sec);
 	struct _item *it = NULL;
 	if(sec){ 
 		it = find_item(sec, name);
 		if(it){
 			*val = it->value;
-			ret = 1;
+			return 1;
 		}
 	}
-	return ret;
+	return 0;
 }
 
 int get_val_as_int(const char *name_sec, const char *name, int **val){
-	int ret = 0;
-
 	char *c_val;
 
 	if(get_val_as_str(name_sec, name, &c_val)){
-		**val = atoi(c_val);
-		ret = 1;
+		errno = 0;
+		**val = strtol(c_val, NULL, 10);
+		if(!errno) return 1;
 	}
-	return ret;
+	return 0;
 }
 
 int get_val_as_float(const char *name_sec, const char *name, float **val){
-	int ret = 0;
-
 	char *c_val;
 
 	if(get_val_as_str(name_sec, name, &c_val)){
+		errno = 0;
 		**val = atof(c_val);
-		ret = 1;
+		if(!errno) return 1;
 	}
-	return ret;
+	return 0;
 }
 
 void delete_config(struct _section *section){
@@ -231,7 +229,7 @@ void print_conf(struct _section *section){
 		fprintf(stdout, "section name: ['%s']\n", cursec->name);
 		curitem = cursec->itemlist;
 		while(curitem){
-			fprintf(stdout, "\tparam name: '%s' = '%s'\n", curitem->name, curitem->value);
+			fprintf(stdout, "'%s' = '%s'\n", curitem->name, curitem->value);
 			curitem = curitem->next;
 		}
 		cursec = cursec->next;
