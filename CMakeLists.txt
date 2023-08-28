@@ -6,21 +6,34 @@ set(PROJECT_TARGET config)
 #set (CMAKE_C_FLAGS "-DDEFAULT_NAME_SEC='MAIN' -g3 -Wall ${CMAKE_C_FLAGS}")
 file(GLOB LIST_SOURCES "src/*.c")
 file(GLOB LIST_HEADERS "include/*.h")
+set(ALL_SOURCES "${LIST_HEADERS};${LIST_SOURCES}")
 
-
-add_executable(${PROJECT_TARGET} ${LIST_SOURCES} ${LIST_HEADERS})
+add_executable(${PROJECT_TARGET} ${ALL_SOURCES})
 
 target_include_directories(${PROJECT_TARGET} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-if(DEFAULT_NAME_SEC)
-	target_compile_options(${PROJECT_TARGET} PUBLIC -DDEFAULT_NAME_SEC=\"${DEFAULT_NAME_SEC}\")
+if(GLOBAL_NAME_SEC)
+	target_compile_options(${PROJECT_TARGET} PUBLIC -DGLOBAL_NAME_SEC=\"${GLOBAL_NAME_SEC}\")
 endif()
 
-if(VALUE_SEPARATOR_CHAR)
-	target_compile_options(${PROJECT_TARGET} PUBLIC -DVALUE_SEPARATOR_CHAR=\"${VALUE_SEPARATOR_CHAR}\")
+if(SEPARATOR_CHAR)
+	target_compile_options(${PROJECT_TARGET} PUBLIC -DSEPARATOR_CHAR=\"${SEPARATOR_CHAR}\")
 endif()
 
-target_compile_options(${PROJECT_TARGET} PUBLIC -Wall)
+if(COMMENT_CHAR)
+	target_compile_options(${PROJECT_TARGET} PUBLIC -DCOMMENT_CHAR=\"${COMMENT_CHAR}\")
+endif()
+
+if(START_SECTION_CHAR)
+	target_compile_options(${PROJECT_TARGET} PUBLIC -DSTART_SECTION_CHAR=\"${START_SECTION_CHAR}\")
+endif()
+
+if(STOP_SECTION_CHAR)
+	target_compile_options(${PROJECT_TARGET} PUBLIC -DSTOP_SECTION_CHAR=\"${STOP_SECTION_CHAR}\")
+endif()
+
+target_compile_options(${PROJECT_TARGET} PUBLIC -g -Wall -DDebug)
+#target_compile_options(${PROJECT_TARGET} PUBLIC -Wall)
 
 set_target_properties(${PROJECT_TARGET}
     PROPERTIES
