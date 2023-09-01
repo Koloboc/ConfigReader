@@ -1,6 +1,7 @@
 #include "conf.h"
 
 //extern struct _section *default_sec;
+
 extern char *separator_char;
 extern char *comment_char;
 extern char *start_section_char;
@@ -9,9 +10,9 @@ extern char *separator_char;
 
 int main(int argc, char* argv[]){
 
-	separator_char = "=";
-	start_section_char = "[";
-	stop_section_char = "]";
+	//separator_char = " ";
+	//start_section_char = "[";
+	//stop_section_char = "]";
 
 	if(argc < 2){
 		printf("USSAGE: %s name_config_file\n", argv[0]);

@@ -7,11 +7,11 @@ struct _section *default_sec = NULL;
 #ifdef GLOBAL_NAME_SEC
 	char *default_name = GLOBAL_NAME_SEC;
 #else
-	char *default_name = "GLOBAL";
+	char *default_name = DEF_SECTION_NAME;
 #endif
 
 #ifdef SEPARATOR_CHAR
-	char *separator_char = _SEPARATOR_CHAR;
+	char *separator_char = SEPARATOR_CHAR;
 #else
 	char *separator_char =  DEF_SEPARATOR_CHAR;
 #endif
@@ -35,6 +35,8 @@ struct _section *default_sec = NULL;
 #endif
 
 struct _section* init_conf(const char *namefile){
+	// Создаем главную (глобальную структуру) секцию с имнем по умолчанию.
+	// И начинаем парсить указанный файл
 	default_sec = (struct _section*)malloc(sizeof(struct _section));
 	memset(default_sec, 0, sizeof(struct _section));
 	default_sec->name = strdup(default_name);
@@ -62,6 +64,8 @@ FILE* open_file(const char *namefile)
 
 int readline(char **buf, size_t *sizebuf, FILE *fd)
 {
+	// Читаем строку в буфер из файла.
+	// Если строка длинная, увеличиваем размер буфера
 	size_t used_buf;
 	if(!fgets(*buf, *sizebuf, fd))
 		return 0; // Error
@@ -143,6 +147,7 @@ int splitline(char *buf, char **name, char **value)
 
 int parse_file(const char* namefile, struct _section *cur_sec)
 {
+	// Возможен рекурсивный вызов при "Include = имяфайла"
 
 	size_t size_buf = SIZE_BUF;
 	int count_lines = 0;
@@ -174,9 +179,7 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 		switch (mode){
 			case 0:
 			case 1:
-#ifdef Debug
-	//printf("line %d detect empty line or comment\n", count_lines);
-#endif
+				// пустая строка
 				break;
 			case 2:
 				// S E C T I O N
@@ -197,17 +200,19 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 				// O P T I O N S
 				if(strcmp(name, "Include") == 0){
 					struct _section *prev_sec = cur_sec;
-					parse_file(val, NULL);
+					if(parse_file(val, NULL) != -1){
+						fprintf(stderr, "Ошибка чтения файла %s\n", namefile);
+					}
 					cur_sec = prev_sec;
 					break;
 				}
 
 				item = find_item(cur_sec, name);
-				if(!item){
+				if(!item && name){
 					item = (struct _item*)malloc(sizeof(struct _item)); 
 					memset(item, 0, sizeof(struct _item));
 					item->name = strdup(name);
-					item->value = strdup(val);
+					if(val) item->value = strdup(val);
 
 					struct _item *curitem = cur_sec->itemlist;
 
@@ -221,7 +226,7 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 					}
 				}else{
 					if(item->value) free(item->value);
-					item->value = strdup(val);
+					if(val) item->value = strdup(val);
 				}
 				break;
 		}

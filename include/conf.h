@@ -11,6 +11,7 @@
 #define DEF_START_SECTION_CHAR "["
 #define DEF_STOP_SECTION_CHAR "]"
 #define DEF_SEPARATOR_CHAR "="
+#define DEF_SECTION_NAME "GLOBAL"
 
 
 struct _item{
