@@ -200,7 +200,7 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 				// O P T I O N S
 				if(strcmp(name, "Include") == 0){
 					struct _section *prev_sec = cur_sec;
-					if(parse_file(val, NULL) != -1){
+					if(parse_file(val, NULL) == -1){
 						fprintf(stderr, "Ошибка чтения файла %s\n", namefile);
 					}
 					cur_sec = prev_sec;
