@@ -1,4 +1,4 @@
-# ConfigReader - static library libconfig.a для чтения и интерпритации сонфигов.<br>
+# ConfigReader - static library libconfig.a для чтения и интерпритации конфигов.<br>
 (shared библиотека будет позже)<br>
 В папке test исходный текст тестовой программы для использования библиотеки<br>
 
