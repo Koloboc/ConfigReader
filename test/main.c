@@ -1,4 +1,5 @@
 #include "conf.h"
+#include "mem.h"
 
 //extern struct _section *default_sec;
 
@@ -19,7 +20,7 @@ int main(int argc, char* argv[]){
 		return 0;
 	}
  
-	struct _section* conf = init_conf(argv[1]);
+	Section* conf = init_conf(argv[1]);
 	float *val;
 
 	if(get_val_as_float("SECTION 2", "LR", &val)){
@@ -28,7 +29,7 @@ int main(int argc, char* argv[]){
 		printf("FIND ERROR\n");
 	}
 
-	print_conf(conf);
+	print_conf();
 	delete_config(conf);
 	return 0;
 }

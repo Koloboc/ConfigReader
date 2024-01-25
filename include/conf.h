@@ -14,29 +14,29 @@
 #define DEF_SECTION_NAME "GLOBAL"
 
 
-struct _item{
+typedef struct _item{
 	char *name;
 	char *value;
 	struct _item *next;
-};
+} Item;
 
-struct _section{
+typedef struct _section{
 	char *name;
-	struct _item *itemlist;
+	Item *itemlist;
 	struct _section * next;
-};
+} Section;
 
 FILE* open_file(const char *namefile);
-int parse_file(const char *namefile, struct _section *cur_sec);
+int parse_file(FILE *fp, Section *cur_sec);
 int readline(char **buf, size_t *size, FILE *fd);
 int splitline(char *buf, char **name, char **value);
-struct _section* init_conf(const char *namefile);
+Section* init_conf(const char *namefile);
 
-struct _section* find_section(const char *namesec);
-struct _item *find_item(const struct _section *section, const char *nameitem);
+Section* find_section(const char *namesec);
+Item *find_item(const Section *section, const char *nameitem);
 
-void delete_config(struct _section *sec);
-void print_conf(struct _section *section);
+void delete_config();
+void print_conf();
 
 int get_val_as_str(const char *name_sec, const char *name, char **val);
 int get_val_as_int(const char *name_sec, const char *name, int **val);

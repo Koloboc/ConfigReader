@@ -1,8 +1,9 @@
 #include <errno.h>
 #include "conf.h"
 #include "functions.h"
+#include "mem.h"
 
-struct _section *default_sec = NULL;
+Section *default_sec = NULL;
 
 #ifdef GLOBAL_NAME_SEC
 	char *default_name = GLOBAL_NAME_SEC;
@@ -34,14 +35,23 @@ struct _section *default_sec = NULL;
 	char *stop_section_char = DEF_STOP_SECTION_CHAR;
 #endif
 
-struct _section* init_conf(const char *namefile){
-	// Создаем главную (глобальную структуру) секцию с имнем по умолчанию.
-	// И начинаем парсить указанный файл
-	default_sec = (struct _section*)malloc(sizeof(struct _section));
-	memset(default_sec, 0, sizeof(struct _section));
-	default_sec->name = strdup(default_name);
+extern XMEM *xmem;
+	
+Section* init_conf(const char *namefile){
+	FILE *fp = open_file(namefile);
+
+	if(!fp)
+		return NULL;
+	// init xmem
+	if(init_mem(fp)){
+		perror("Error init mem");
+		return NULL;
+	}
+
+	default_sec = (Section*)xmalloc(sizeof(Section));
+	default_sec->name = xstrdup(default_name);
 	 
-	parse_file(namefile, NULL);
+	parse_file(fp, NULL);
 	return default_sec;
 }
 
@@ -78,7 +88,7 @@ int readline(char **buf, size_t *sizebuf, FILE *fd)
 			return 0; // Error
 		}
 		*buf = (char*)realloc(*buf, *sizebuf += SIZE_BUF);
-		printf("realoc buffera +%ld\n", *sizebuf);
+		printf("realoc buffer +%ld\n", *sizebuf);
 		if(!(*buf)){
 			perror("error realoc buffer:");
 			return 0;
@@ -140,27 +150,24 @@ int splitline(char *buf, char **name, char **value)
 		val[0] = '\0';
 		*value = trim(val + 1);
 	}
-	*name = trimbuf;
+	*name = trim(trimbuf);
 
 	return 3; 
 }
 
-int parse_file(const char* namefile, struct _section *cur_sec)
+int parse_file(FILE* fp, Section *cur_sec)
 {
 	// Возможен рекурсивный вызов при "Include = имяфайла"
 
 	size_t size_buf = SIZE_BUF;
 	int count_lines = 0;
-	FILE *fp = open_file(namefile);
-
-	if(!fp)
-		return -1;
-
+	
 	char *buf = (char*)malloc(size_buf);
 	if(!buf)
 	{
 		fprintf(stderr, "Error malloc buf for config\n");
 		fclose(fp);
+		xfree();
 		return -1;
 	}
 
@@ -172,9 +179,9 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 		count_lines++;
 		char *name = NULL;
 	    char *val = NULL;
-		struct _section *newsec;
-		struct _section *last_sec;
-		struct _item *item;
+		Section *newsec;
+		Section *last_sec;
+		Item *item;
 		int mode = splitline(buf, &name, &val);
 		switch (mode){
 			case 0:
@@ -185,9 +192,8 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 				// S E C T I O N
 				newsec =  find_section(name);
 				if(!newsec){ // Секция не найдена, создаем новую
-					newsec = (struct _section*)malloc(sizeof(struct _section));
-					memset(newsec, 0, sizeof(struct _section));
-					newsec->name = strdup(name);
+					newsec = (Section*)xmalloc(sizeof(Section));
+					newsec->name = xstrdup(name);
 					last_sec = cur_sec;
 					while(last_sec->next) 
 						last_sec = last_sec->next;
@@ -199,22 +205,27 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 			case 3:
 				// O P T I O N S
 				if(strcmp(name, "Include") == 0){
-					struct _section *prev_sec = cur_sec;
-					if(parse_file(val, NULL) == -1){
-						fprintf(stderr, "Ошибка чтения файла %s\n", namefile);
+					/* Section *prev_sec = cur_sec; */
+					FILE *fp2 = open_file(val);
+
+					if(!fp)
+						fprintf(stderr, "Ошибка чтения файла %s\n", val);
+
+					if(parse_file(fp2, cur_sec) == -1){
+						fprintf(stderr, "Ошибк  разбора файла %s\n", val);
 					}
-					cur_sec = prev_sec;
+					/* cur_sec = prev_sec; */
 					break;
 				}
 
 				item = find_item(cur_sec, name);
 				if(!item && name){
-					item = (struct _item*)malloc(sizeof(struct _item)); 
-					memset(item, 0, sizeof(struct _item));
-					item->name = strdup(name);
-					if(val) item->value = strdup(val);
+					item = (Item*)xmalloc(sizeof(Item)); 
+					/* memset(item, 0, sizeof(Item)); */
+					item->name = xstrdup(name);
+					if(val) item->value = xstrdup(val);
 
-					struct _item *curitem = cur_sec->itemlist;
+					Item *curitem = cur_sec->itemlist;
 
 					if(curitem){
 						while(curitem->next)
@@ -226,23 +237,24 @@ int parse_file(const char* namefile, struct _section *cur_sec)
 					}
 				}else{
 					if(item->value) free(item->value);
-					if(val) item->value = strdup(val);
+					if(val) item->value = xstrdup(val);
 				}
 				break;
 		}
 	}
 	free(buf);
+	//xfree();
 	if(!feof(fp))
 	{
-		fprintf(stderr, "Ошибка чтения файла %s\n", namefile);
+		fprintf(stderr, "Ошибка чтения файла\n");
 		return -1;
 	}
 	return 0;
 
 }
 
-struct _section* find_section(const char *namesec){
-	struct _section *cur_sec = default_sec;
+Section* find_section(const char *namesec){
+	Section *cur_sec = default_sec;
 	while(cur_sec){
 		if(cur_sec->name && (strcmp(cur_sec->name, namesec) == 0)){
 			return cur_sec;
@@ -252,8 +264,8 @@ struct _section* find_section(const char *namesec){
 	return NULL;
 }
 
-struct _item *find_item(const struct _section *section, const char *nameitem){
-	struct _item *it = section->itemlist;
+Item *find_item(const Section *section, const char *nameitem){
+	Item *it = section->itemlist;
 	while(it){
 		if(strcmp(it->name, nameitem) == 0){
 			return it;
@@ -264,8 +276,8 @@ struct _item *find_item(const struct _section *section, const char *nameitem){
 }
 
 int get_val_as_str(const char *name_sec, const char *name, char **val){
-	struct _section *sec = find_section(name_sec);
-	struct _item *it = NULL;
+	Section *sec = find_section(name_sec);
+	Item *it = NULL;
 	if(sec){ 
 		it = find_item(sec, name);
 		if(it){
@@ -298,33 +310,16 @@ int get_val_as_float(const char *name_sec, const char *name, float **val){
 	return 0;
 }
 
-void delete_config(struct _section *section){
-	struct _item *it = NULL;
-	struct _item *temp = NULL;
-	struct _section *tempsec = NULL;
-
-	while(section){
-		it = section->itemlist;
-		while(it){
-			if(it->name) free(it->name);
-			if(it->value) free(it->value);
-			temp = it->next;
-			free(it);
-			it = temp;
-		}
-		tempsec = section->next;
-		free(section->name);
-		free(section);
-		section = tempsec;
-	}
+void delete_config(){
+	xfree();
 }
 
-void print_conf(struct _section *section){
-	struct _section *cursec = section;
-	struct _item *curitem = NULL;
+void print_conf(){
+	Section *cursec = (Section*)xmem->mem;
+	Item *curitem = NULL;
 
 	while(cursec){
-		fprintf(stdout, "section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
+		fprintf(stdout, "Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
 		curitem = cursec->itemlist;
 		while(curitem){
 			fprintf(stdout, "\t%s = %s\n", curitem->name, curitem->value);
