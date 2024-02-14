@@ -88,14 +88,14 @@ use_progress_ba =  0
 	learn = 1
 	epoch = 10
 [SECTION 2]
-	learnDataSet = /home/kost/programming/
+	learnDataSet = /path/
 	LR = 0.1
 	min_error = 10.321
 	epoch = 10000
 	param_subsection = BBB
 	write_log = 1
 	name_weights = w_lines4
-	path_weights = /home/kost/programming/NN/
+	path_weights = /path/NN/
 	use_progress_ba = 0
 [subsection]
 	param_subsection = aaa
