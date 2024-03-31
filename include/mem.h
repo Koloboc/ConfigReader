@@ -6,12 +6,13 @@ typedef struct XMEM{
 	size_t size;
 	size_t free;
 } XMEM;
-XMEM *xmem;
+XMEM xmem;
 
-int init_mem(FILE *fin);
-void xfree();
+size_t calc_mem(FILE *fin);
+int init_mem(size_t size);
+void xfree(char **ptr);
 char *xmalloc(size_t size);
-void xrealloc(size_t size);
+int xrealloc(size_t size);
 char *xstrdup(const char *str);
 
 
