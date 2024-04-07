@@ -1,19 +1,23 @@
 #ifndef __MEM_MANAGER_H__
 #define  __MEM_MANAGER_H__
 
+#include "conf.h"
+
 typedef struct XMEM{
 	char *mem;
 	size_t size;
 	size_t free;
+	struct XMEM *next;
 } XMEM;
-XMEM xmem;
 
-size_t calc_mem(FILE *fin);
-int init_mem(size_t size);
-void xfree(char **ptr);
-char *xmalloc(size_t size);
-int xrealloc(size_t size);
-char *xstrdup(const char *str);
+XMEM* init_block(size_t size);
+void couple_block(XMEM *pool, XMEM *block);
+XMEM *last_block(XMEM *pool);
+
+void gxfree(XMEM **block);
+
+char *xmalloc(XMEM *pxmem, size_t size);
+char *xstrdup(XMEM *pxmem, const char *str);
 
 
 

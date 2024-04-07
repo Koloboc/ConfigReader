@@ -1,81 +1,126 @@
+#include <stdio.h>
 #include <errno.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include "mem.h"
 #include "conf.h"
 #include "functions.h"
-#include "mem.h"
+
+char *default_name = DEF_SECTION_NAME;
+char *separator_char =  DEF_SEPARATOR_CHAR;
+char *comment_char = DEF_COMMENT_CHAR;
+char *start_section_char = DEF_START_SECTION_CHAR;
+char *stop_section_char = DEF_STOP_SECTION_CHAR;
 
 #ifdef GLOBAL_NAME_SEC
 	char *default_name = GLOBAL_NAME_SEC;
-#else
-	char *default_name = DEF_SECTION_NAME;
 #endif
 
 #ifdef SEPARATOR_CHAR
 	char *separator_char = SEPARATOR_CHAR;
-#else
-	char *separator_char =  DEF_SEPARATOR_CHAR;
 #endif
 
 #ifdef COMMENT_CHAR
 	char *comment_char = COMMENT_CHAR;
-#else
-	char *comment_char = DEF_COMMENT_CHAR;
 #endif
 
 #ifdef START_SECTION_CHAR
 	char *start_section_char = START_SECTION_CHAR;
-#else
-	char *start_section_char = DEF_START_SECTION_CHAR;
 #endif
 
 #ifdef STOP_SECTION_CHAR
 	char *stop_section_char = STOP_SECTION_CHAR;
-#else
-	char *stop_section_char = DEF_STOP_SECTION_CHAR;
 #endif
 
-extern XMEM xmem;
-Section *default_sec = NULL;
+//*****************************************************
+size_t calc_mem(FILE *fin){
+	size_t size_mem = 0;
+	size_t els = 0; 		// ELEMENTS
+	size_t all_chars = 0;  // CHARS
+	char ch;			// Current char
+    char prch = 0; 		// prev char
+	size_t zch = 0;		// Count '\n'
+	size_t n_struct = 0; 	// Ocunt Item & Section
+	size_t n_str = 0;		// count strings
 
+	while((ch = fgetc(fin)) != EOF){
+		if(ch == comment_char[0]){
+			while((ch = fgetc(fin)) != EOF){
+				/* prch = ch; */
+				if(ch == '\n')
+					break;
+			}
+			continue;
+		}
+        if(ch == '\n'){
+			if(prch == 0 || prch == '\n')
+			   continue;
 
-FILE *init_conf(const char *namefile){
-	FILE *fp = open_file(namefile);
+			els++;
+			zch++;
+		}else if(ch == '='){
+			zch++;
+		}else if(ch != '[' && ch != ']'){
+			all_chars++;
+		}
+		prch = ch;
+    }
+	els++; // + struct GLOBAL section
 
-	if(!fp)
-		return NULL;
-	// init xmem
-	size_t size_mem = calc_mem(fp);
-	if(init_mem(size_mem)){
-		perror("Error init mem");
-		return NULL;
-	}
+	n_struct = els * sizeof(Item);// + sizeof(Conf); // Количество эдементов + (элемент GLOBAL) на рахмер. размер Item и Section равны
+	n_str = sizeof(char) * (all_chars + zch + strlen(default_name) + 1); // Количество символов + количество \n
+	size_mem = n_struct + n_str;
 
-	if(!default_sec){
-		default_sec = (Section*)xmalloc(sizeof(Section));
-		default_sec->name = xstrdup(default_name);
-	}
-
-	return fp;
+#ifdef Debug
+	printf("calculate mem: n_struct %ld = %ld\tn_str %ld\tall_chars %ld\tzch %ld\n", els, n_struct, n_str, all_chars, zch);
+	printf("total calculate mem: %ld\n", size_mem);
+#endif
+	fseek(fin, 0, SEEK_SET);
+	return size_mem;
 }
 
-FILE* open_file(const char *namefile)
-{
+//*****************************************************
+Conf *init_conf(char *namefile){
+	Conf *c = NULL;
+	XMEM *xm = NULL;
+
+	FILE *fp = open_file(namefile);
+	if(!(fp))
+		return NULL;
+
+	// init pool
+	size_t size_mem = calc_mem(fp);
+	size_mem += sizeof(Conf);
+
+	if(!(xm = init_block(size_mem))){
+		printf("Error init mem\n");
+		return NULL;
+	}
+	c = (Conf*)xmalloc(xm, sizeof(Conf));
+	c->pool = xm;
+	c->fp = fp;
+	c->g_sec = NULL;
+
+	return c;
+}
+
+//*****************************************************
+FILE* open_file(const char *namefile){
 	FILE *fp = NULL;
-	if(!namefile)
-	{
+	if(!namefile) {
 		fprintf(stderr, "Error open config file (no name)\n");
 		return NULL;
 	}
 
-	if(! (fp = fopen(namefile, "r")))
-	{
+	if(! (fp = fopen(namefile, "r"))) {
 		fprintf(stderr, "Error open config file settings: %s\n", namefile);
 		return NULL;
 	}
 	return fp;
 }
 
-int readline(char **buf, size_t *sizebuf, FILE *fd)
-{
+//*****************************************************
+int readline(char **buf, size_t *sizebuf, FILE *fd){
 	// Читаем строку в буфер из файла.
 	// Если строка длинная, увеличиваем размер буфера
 	size_t used_buf;
@@ -103,6 +148,7 @@ int readline(char **buf, size_t *sizebuf, FILE *fd)
 	return 0; // Ok
 }
 
+//*****************************************************
 /*
   Или
   	name - имя секции,
@@ -112,8 +158,7 @@ int readline(char **buf, size_t *sizebuf, FILE *fd)
 	value - значение опции
  */
 
-int splitline(char *buf, char **name, char **value)
-{
+int splitline(char *buf, char **name, char **value){
 	char *val = NULL;
 	char *trimbuf = trim(buf);
 	if( ! strlen(trimbuf) ) return EMPTY_LINE; // Empty
@@ -155,37 +200,58 @@ int splitline(char *buf, char **name, char **value)
 	return OPTION_LINE;
 }
 
-int parse_file(FILE* fp, Section *cur_sec)
-{
+//*****************************************************
+Section *create_default_sec(Conf *c){
+	Section *rez = NULL;
+
+	rez = (Section*)xmalloc(c->pool, sizeof(Section));
+	if(!rez){
+		printf("Error create DEFAULT section\n");
+		return rez;
+	}
+	rez->name = (char*)xstrdup(c->pool, default_name);
+	rez->next = NULL;
+	rez->itemlist = NULL;
+	c->g_sec = rez;
+	return rez;
+}
+
+//*****************************************************
+Conf* read_conf(char *namef, Conf *prev_conf){
 	// Возможен рекурсивный вызов при "Include = имяфайла"
 
 	Section *newsec;
-	Section *last_sec;
+	Section *lsec = NULL;
+	Section *cur_sec = NULL;
 	Item *item;
 	size_t size_buf = SIZE_BUF; // Буфер для чтения
 	int count_lines = 0;
 
-	char *buf = (char*)malloc(size_buf);
-	if(!buf)
-	{
-		fprintf(stderr, "Error malloc buf for config\n");
-		fclose(fp);
-		xfree(&xmem.mem);
-		return -1;
+	Conf *c = init_conf(namef);
+	if(!c)
+		return NULL;
+
+	if(!prev_conf){
+		cur_sec = create_default_sec(c);
+	}else{
+		cur_sec = prev_conf->g_sec;
 	}
 
-	if(!cur_sec)
-		cur_sec = default_sec;
+	char *buf = (char*)malloc(size_buf + 1); // для чтения fread
+	if(!buf) {
+		printf("Error malloc buf for read config\n");
+		fclose(c->fp);
+		gxfree(&(c->pool));
+		return NULL;
+	}
 
-	fseek(fp, 0, SEEK_SET);
-	while(!(readline(&buf, &size_buf, fp)))
-	{
+	while(!(readline(&buf, &size_buf, c->fp))) {
 		newsec = NULL;
-		last_sec = NULL;
 		item = NULL;
 		count_lines++;
 		char *name = NULL;
 	    char *val = NULL;
+		Item *litem = NULL;
 
 		int mode = splitline(buf, &name, &val);
 		switch (mode){
@@ -194,71 +260,91 @@ int parse_file(FILE* fp, Section *cur_sec)
 				break;
 			case SECTION_LINE:
 				// S E C T I O N
-				newsec = find_section(name);
+				newsec = find_section(c, name);
 				if(!newsec){ // Секция не найдена, создаем новую
-					newsec = (Section*)xmalloc(sizeof(Section));
-					newsec->name = xstrdup(name);
-					last_sec = cur_sec;
-					while(last_sec->next)
-						last_sec = last_sec->next;
-
-					last_sec->next = newsec;
+					newsec = (Section*)xmalloc(c->pool, sizeof(Section));
+					newsec->name = xstrdup(c->pool, name);
+					lsec = last_sec(c);
+					if(lsec){
+						lsec->next = newsec;
+					}else{
+						if(c->g_sec)
+							c->g_sec->next = newsec;
+						else
+							c->g_sec = newsec;
+					}
 				}
 				cur_sec = newsec; // Секция найдена, используем ее
 				break;
 			case OPTION_LINE:
+				// I N C L U D E
+				if((strcmp(name, "Include") == 0) && val){
+					Conf *c2 = read_conf(val, c);
+					if(!c2) exit(EXIT_FAILURE);
+					couple_block(c->pool, c2->pool);
+					break;
+				}
 				// O P T I O N S
-				/* if(strcmp(name, "Include") == 0){ */
-				/* 	FILE *fp2 = init_conf(val); */
-				/* 	if(fp2 != NULL){ */
-				/* 		if(parse_file(fp2, cur_sec) == -1){ */
-				/* 			printf("Ошиба разбора файла %s\n", val); */
-				/* 		} */
-				/* 	} */
-				/* 	break; */
-				/* } */
-
 				item = find_item(cur_sec, name);
-				if(!item && name){
-					item = (Item*)xmalloc(sizeof(Item));
-					/* memset(item, 0, sizeof(Item)); */
-					item->name = xstrdup(name);
+				if(!item){
+					item = (Item*)xmalloc(c->pool, sizeof(Item));
+					item->name = xstrdup(c->pool, name);
 					if(val){
-						item->value = xstrdup(val);
-					}
+						item->value = xstrdup(c->pool, val);
+						litem = last_item(cur_sec->itemlist);
+						if(litem)
+							litem->next = item;
+						else
+							cur_sec->itemlist = item;
 
-					Item *curitem = cur_sec->itemlist;
-
-					if(curitem){
-						while(curitem->next)
-							curitem = curitem->next;
-
-						curitem->next = item;
 					}else{
 						cur_sec->itemlist = item;
 					}
 				}else{
-					if(item->value) xfree(&item->value);
 					if(val){
-						item->value = xstrdup(val);
+						item->value = xstrdup(c->pool, val);
 					}
 				}
 				break;
 		}
 	}
 	free(buf);
-	if(!feof(fp))
+	if(!feof(c->fp))
 	{
 		fprintf(stderr, "Ошибка чтения файла\n");
-		fclose(fp);
-		return -1;
+		fclose(c->fp);
+		return NULL;
 	}
-	fclose(fp);
-	return 0;
+	fclose(c->fp);
+	return c;
 }
 
-Section* find_section(const char *namesec){
-	Section *cur_sec = default_sec;
+//*****************************************************
+Section *last_sec(Conf *c){
+	Section *sec = c->g_sec;
+	if(sec){
+		while(sec->next)
+			sec = sec->next;
+		return sec;
+	}
+	return NULL;
+}
+
+//*****************************************************
+Item *last_item(Item *item){
+	if(item){
+		while(item->next)
+			item = item->next;
+	}
+	return item;
+}
+
+//*****************************************************
+Section* find_section(Conf *conf, const char *namesec){
+	Section *cur_sec;
+
+	cur_sec = conf->g_sec;
+
 	while(cur_sec){
 		if(cur_sec->name && (strcmp(cur_sec->name, namesec) == 0)){
 			return cur_sec;
@@ -268,6 +354,7 @@ Section* find_section(const char *namesec){
 	return NULL;
 }
 
+//*****************************************************
 Item *find_item(const Section *section, const char *nameitem){
 	Item *it = section->itemlist;
 	while(it){
@@ -279,8 +366,9 @@ Item *find_item(const Section *section, const char *nameitem){
 	return it;
 }
 
-int get_val_as_str(const char *name_sec, const char *name, char **val){
-	Section *sec = find_section(name_sec);
+//*****************************************************
+int get_val_as_str(Conf *conf, const char *name_sec, const char *name, char **val){
+	Section *sec = find_section(conf, name_sec);
 	Item *it = NULL;
 	if(sec){
 		it = find_item(sec, name);
@@ -292,10 +380,11 @@ int get_val_as_str(const char *name_sec, const char *name, char **val){
 	return 0;
 }
 
-int get_val_as_int(const char *name_sec, const char *name, int *val){
+//*****************************************************
+int get_val_as_int(Conf *conf, const char *name_sec, const char *name, int *val){
 	char *p_val;
 
-	if(get_val_as_str(name_sec, name, &p_val)){
+	if(get_val_as_str(conf, name_sec, name, &p_val)){
 		errno = 0;
 		*val = strtol(p_val, NULL, 10);
 		if(!errno) return 1;
@@ -303,10 +392,11 @@ int get_val_as_int(const char *name_sec, const char *name, int *val){
 	return 0;
 }
 
-int get_val_as_float(const char *name_sec, const char *name, double *val){
+//*****************************************************
+int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *val){
 	char *p_val;
 
-	if(get_val_as_str(name_sec, name, &p_val)){
+	if(get_val_as_str(conf, name_sec, name, &p_val)){
 		errno = 0;
 		*val = atof(p_val);
 		if(!errno) return 1;
@@ -314,22 +404,29 @@ int get_val_as_float(const char *name_sec, const char *name, double *val){
 	return 0;
 }
 
-void delete_config(){
-	xfree(&xmem.mem);
+//*****************************************************
+void delete_config(Conf **c){
+	Conf *conf = *c;
+
+	if(conf){
+		gxfree(&(conf->pool));
+	}
+	c = NULL;
 }
 
-void print_conf(){
-	if(!(xmem.mem))
-		return;
+//*****************************************************
+void print_conf(Conf *c){
+	/* if(!(c->pool->mem)) */
+		/* return; */
 
-	Section *cursec = (Section*)xmem.mem;
+	Section *cursec = c->g_sec;
 	Item *curitem = NULL;
 
 	while(cursec){
-		fprintf(stdout, "Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
+		printf("Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
 		curitem = cursec->itemlist;
 		while(curitem){
-			fprintf(stdout, "\t%s = %s\n", curitem->name, curitem->value);
+			printf("\t%s = %s\n", curitem->name, curitem->value);
 			curitem = curitem->next;
 		}
 		cursec = cursec->next;

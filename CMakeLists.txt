@@ -25,8 +25,8 @@ SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY
         "Single Directory for all"
     )
 
-message(INCLUDE = ${LIB_HEADERS})
-message(SOURCE = ${LIB_SOURCES})
+# message(INCLUDE = ${LIB_HEADERS})
+# message(SOURCE = ${LIB_SOURCES})
 add_library(${PROJECT_TARGET} ${LIB_SOURCES} ${LIB_HEADERS})
 target_include_directories(${PROJECT_TARGET} PUBLIC ${INCLUDES_DIR})
 
@@ -46,6 +46,7 @@ if(STOP_SECTION_CHAR)
 target_compile_options(${PROJECT_TARGET} PRIVATE -DSTOP_SECTION_CHAR=\"${STOP_SECTION_CHAR}\")
 endif()
 target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug)
+# target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall)
 #target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
 
 set(PROJECT_TARGET_TEST test1)

@@ -1,5 +1,6 @@
-#include "conf.h"
+#include <stdlib.h>
 #include "mem.h"
+#include "conf.h"
 
 //extern struct _section *default_sec;
 
@@ -9,7 +10,9 @@ extern char *comment_char;
 /* extern char *stop_section_char; */
 /* extern char *separator_char; */
 
-extern Section *default_sec;
+/* extern Section *default_sec; */
+
+Conf* main_conf;
 
 int main(int argc, char* argv[]){
 	comment_char = ";";
@@ -22,18 +25,21 @@ int main(int argc, char* argv[]){
 		return 0;
 	}
 
-	FILE* fin = init_conf(argv[1]);
-	parse_file(fin, NULL);
-	Section *conf = default_sec;
+	main_conf = read_conf(argv[1], NULL);
+	if(!main_conf){
+		printf("Error read config file %s\n", argv[1]);
+		return EXIT_FAILURE;
+	}
+
 	char* val;
 
-	print_conf();
-	if(get_val_as_str("Session", "session.serialize_handler", &val)){
-		printf("session.serialize_handler = %s\n---------\n", val);
+	print_conf(main_conf);
+	if(get_val_as_str(main_conf, "Session", "session.serialize_handler", &val)){
+		printf("---------\nsession.serialize_handler = %s\n---------\n", val);
 	}else{
 		printf("FIND ERROR\n");
 	}
 
-	delete_config(conf);
+	delete_config(&main_conf);
 	return 0;
 }
