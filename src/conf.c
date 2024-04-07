@@ -217,15 +217,62 @@ Section *create_default_sec(Conf *c){
 }
 
 //*****************************************************
+Section * case_section(Conf *c, const char *name, const char *val){
+	Section *lastsection = NULL;
+	Section *newsec = find_section(c, name);
+
+	if(!newsec){ // Секция не найдена, создаем новую
+		newsec = (Section*)xmalloc(c->pool, sizeof(Section));
+		newsec->name = xstrdup(c->pool, name);
+
+		lastsection = last_sec(c);
+		if(lastsection){
+			lastsection->next = newsec;
+		}else{
+			if(c->g_sec)
+				c->g_sec->next = newsec;
+			else
+				c->g_sec = newsec;
+		}
+	}
+	return newsec;
+}
+
+int case_option(Conf *c, Section *sec, const char *name, const char *val){
+	Item *lastitem = NULL;
+	Item *item = find_item(sec, name);
+	char *v = NULL;
+	if(val)
+		v = xstrdup(c->pool, val);
+
+	if(!item){
+		item = (Item*)xmalloc(c->pool, sizeof(Item));
+		item->name = xstrdup(c->pool, name);
+		if(v){
+			item->value = v;
+			lastitem = last_item(sec->itemlist);
+			if(lastitem)
+				lastitem->next = item;
+			else
+				sec->itemlist = item;
+
+		}else{
+			sec->itemlist = item;
+		}
+	}else{
+		if(val){
+			item->value = v;
+		}
+	}
+	return 0;
+}
+//*****************************************************
 Conf* read_conf(char *namef, Conf *prev_conf){
 	// Возможен рекурсивный вызов при "Include = имяфайла"
 
-	Section *newsec;
-	Section *lsec = NULL;
 	Section *cur_sec = NULL;
-	Item *item;
+	/* Item *item; */
 	size_t size_buf = SIZE_BUF; // Буфер для чтения
-	int count_lines = 0;
 
 	Conf *c = init_conf(namef);
 	if(!c)
@@ -246,12 +293,10 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 	}
 
 	while(!(readline(&buf, &size_buf, c->fp))) {
-		newsec = NULL;
-		item = NULL;
-		count_lines++;
+		/* item = NULL; */
 		char *name = NULL;
 	    char *val = NULL;
-		Item *litem = NULL;
+		/* Item *litem = NULL; */
 
 		int mode = splitline(buf, &name, &val);
 		switch (mode){
@@ -260,21 +305,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 				break;
 			case SECTION_LINE:
 				// S E C T I O N
-				newsec = find_section(c, name);
-				if(!newsec){ // Секция не найдена, создаем новую
-					newsec = (Section*)xmalloc(c->pool, sizeof(Section));
-					newsec->name = xstrdup(c->pool, name);
-					lsec = last_sec(c);
-					if(lsec){
-						lsec->next = newsec;
-					}else{
-						if(c->g_sec)
-							c->g_sec->next = newsec;
-						else
-							c->g_sec = newsec;
-					}
-				}
-				cur_sec = newsec; // Секция найдена, используем ее
+				cur_sec = case_section(c, name, val);
 				break;
 			case OPTION_LINE:
 				// I N C L U D E
@@ -285,26 +316,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 					break;
 				}
 				// O P T I O N S
-				item = find_item(cur_sec, name);
-				if(!item){
-					item = (Item*)xmalloc(c->pool, sizeof(Item));
-					item->name = xstrdup(c->pool, name);
-					if(val){
-						item->value = xstrdup(c->pool, val);
-						litem = last_item(cur_sec->itemlist);
-						if(litem)
-							litem->next = item;
-						else
-							cur_sec->itemlist = item;
-
-					}else{
-						cur_sec->itemlist = item;
-					}
-				}else{
-					if(val){
-						item->value = xstrdup(c->pool, val);
-					}
-				}
+				case_option(c, cur_sec, name, val);
 				break;
 		}
 	}

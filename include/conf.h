@@ -53,6 +53,9 @@ Item *last_item(Item *item);
 Section *last_sec(Conf *c);
 Section *create_default_sec(Conf *c);
 
+Section * case_section(Conf *c, const char *name, const char *val);
+int case_option(Conf *c, Section *sec, const char *name, const char *val);
+
 Section* find_section(Conf *conf, const char *namesec);
 Item *find_item(const Section *section, const char *nameitem);
 
