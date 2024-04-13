@@ -12,6 +12,9 @@ char *comment_char = DEF_COMMENT_CHAR;
 char *start_section_char = DEF_START_SECTION_CHAR;
 char *stop_section_char = DEF_STOP_SECTION_CHAR;
 
+extern Conf* conf;
+extern char *config_file;
+
 #ifdef GLOBAL_NAME_SEC
 	char *default_name = GLOBAL_NAME_SEC;
 #endif
@@ -113,7 +116,9 @@ FILE* open_file(const char *namefile){
 	}
 
 	if(! (fp = fopen(namefile, "r"))) {
+		char *err = strerror(errno);
 		fprintf(stderr, "Error open config file settings: %s\n", namefile);
+		fprintf(stderr, "%s", err);
 		return NULL;
 	}
 	return fp;
@@ -248,21 +253,15 @@ int case_option(Conf *c, Section *sec, const char *name, const char *val){
 	if(!item){
 		item = (Item*)xmalloc(c->pool, sizeof(Item));
 		item->name = xstrdup(c->pool, name);
-		if(v){
-			item->value = v;
-			lastitem = last_item(sec->itemlist);
-			if(lastitem)
-				lastitem->next = item;
-			else
-				sec->itemlist = item;
-
+		lastitem = last_item(sec->itemlist);
+		if(lastitem){
+			lastitem->next = item;
 		}else{
 			sec->itemlist = item;
 		}
-	}else{
-		if(val){
-			item->value = v;
-		}
+	}
+	if(val){
+		item->value = v;
 	}
 	return 0;
 }
@@ -288,7 +287,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 	if(!buf) {
 		printf("Error malloc buf for read config\n");
 		fclose(c->fp);
-		gxfree(&(c->pool));
+		delete_config(c);
 		return NULL;
 	}
 
@@ -417,31 +416,62 @@ int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *
 }
 
 //*****************************************************
-void delete_config(Conf **c){
-	Conf *conf = *c;
-
-	if(conf){
-		gxfree(&(conf->pool));
+void delete_config(Conf *c){
+	if(c){
+#ifdef Debug
+		printf("delete config\n");
+#endif
+		gxfree(c->pool);
 	}
 	c = NULL;
 }
 
 //*****************************************************
 void print_conf(Conf *c){
-	/* if(!(c->pool->mem)) */
-		/* return; */
-
-	Section *cursec = c->g_sec;
 	Item *curitem = NULL;
 
-	while(cursec){
-		printf("Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
-		curitem = cursec->itemlist;
-		while(curitem){
-			printf("\t%s = %s\n", curitem->name, curitem->value);
-			curitem = curitem->next;
+	while(c){
+		Section *cursec = c->g_sec;
+		while(cursec){
+#ifdef Debug
+			printf("Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
+#endif
+			curitem = cursec->itemlist;
+			while(curitem){
+#ifdef Debug
+				printf("\t%s = %s\n", curitem->name, curitem->value);
+#endif
+				curitem = curitem->next;
+			}
+			cursec = cursec->next;
 		}
-		cursec = cursec->next;
+		if(c->pool->next)
+			c = (Conf*)(c->pool->next->mem);
+		else
+			c = NULL;
 	}
+
+}
+
+//*****************************************************
+void reread_conf(int sig){
+
+	if(conf){
+		delete_config(conf);
+		conf = NULL;
+	}
+
+#ifdef Debug
+	printf("reread config: %s\n", config_file);
+#endif
+	conf = read_conf(config_file, NULL);
+	if(!conf){
+#ifdef Debug
+		printf("error parse config %s\n", config_file);
+#endif
+		delete_config(conf);
+		exit(EXIT_FAILURE);
+	}
+	return;
 }
 

@@ -12,7 +12,8 @@ extern char *comment_char;
 
 /* extern Section *default_sec; */
 
-Conf* main_conf;
+Conf* conf;
+char *config_file;
 
 int main(int argc, char* argv[]){
 	comment_char = ";";
@@ -25,21 +26,22 @@ int main(int argc, char* argv[]){
 		return 0;
 	}
 
-	main_conf = read_conf(argv[1], NULL);
-	if(!main_conf){
+	config_file = argv[1];
+	conf = read_conf(argv[1], NULL);
+	if(!conf){
 		printf("Error read config file %s\n", argv[1]);
 		return EXIT_FAILURE;
 	}
 
 	char* val;
 
-	print_conf(main_conf);
-	if(get_val_as_str(main_conf, "Session", "session.serialize_handler", &val)){
+	print_conf(conf);
+	if(get_val_as_str(conf, "Session", "session.serialize_handler", &val)){
 		printf("---------\nsession.serialize_handler = %s\n---------\n", val);
 	}else{
 		printf("FIND ERROR\n");
 	}
 
-	delete_config(&main_conf);
+	delete_config(conf);
 	return 0;
 }

@@ -59,7 +59,7 @@ int case_option(Conf *c, Section *sec, const char *name, const char *val);
 Section* find_section(Conf *conf, const char *namesec);
 Item *find_item(const Section *section, const char *nameitem);
 
-void delete_config(Conf **c);
+void delete_config(Conf *c);
 void print_conf(Conf *c);
 
 int get_val_as_str(Conf *conf, const char *name_sec, const char *name, char **val);

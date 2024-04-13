@@ -16,12 +16,16 @@ XMEM* init_block(size_t size){
 	}
 	block = (XMEM*)malloc(size + sizeof(XMEM));
 	if(!block){
-		printf("Error malloc block size: %ld\n", size);
+		fprintf(stderr, "Error malloc block size: %ld\n", size);
 		return NULL;
 	}
 	block->size = size;
 	block->free = size;
+	block->next = NULL;
 	block->mem = ((char*)block) + sizeof(XMEM);
+#ifdef Debug
+	printf("Инициализируем память %ld", size);
+#endif
 
 	return block;
 }
@@ -48,22 +52,18 @@ void couple_block(XMEM *pool, XMEM *block){
 
 //*****************************************************
 // Освобождает ГЛОБАЛЬНО (не ЛОГИЧЕСКИ)
-void gxfree(XMEM **ptr){
-	XMEM *p = *ptr;
+void gxfree(XMEM *ptr){
 	XMEM *next;
 
-	if(!(p))
-		return;
-
-	while(p){
-		next = p->next;
-		printf("delete xmem size: %ld\n", p->size);
-		free(p);
-		p = next;
-	}
+	while(ptr){
+		next = ptr->next;
 #ifdef Debug
-	printf("free global mem\n");
+		printf("delete xmem size: %ld\n", ptr->size);
 #endif
+		memset(ptr, 0, ptr->size);
+		free(ptr);
+		ptr = next;
+	}
 	return;
 }
 
@@ -96,7 +96,7 @@ char *xstrdup(XMEM *pxmem, const char *str){
 
 	char *newstr = xmalloc(pxmem, strlen(str) + 1);
 	if(!newstr){
-		printf("Error copy string: size string very big! free: %ld, size string: %ld\n", pxmem->free, strlen(str) + 1);
+		fprintf(stderr, "Error copy string: size string very big! free: %ld, size string: %ld\n", pxmem->free, strlen(str) + 1);
 		exit(EXIT_FAILURE);
 	}
 	strcpy(newstr, str);
