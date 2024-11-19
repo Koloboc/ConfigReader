@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <string.h>
 #include "mem.h"
 #include "conf.h"
 #include "functions.h"
@@ -9,11 +10,15 @@
 char *default_name = DEF_SECTION_NAME;
 char *separator_char =  DEF_SEPARATOR_CHAR;
 char *comment_char = DEF_COMMENT_CHAR;
+/* extern char *comment_char; */
 char *start_section_char = DEF_START_SECTION_CHAR;
 char *stop_section_char = DEF_STOP_SECTION_CHAR;
 
 extern Conf* conf;
 extern char *config_file;
+extern char endline;
+extern char tab;
+extern char space;
 
 #ifdef GLOBAL_NAME_SEC
 	char *default_name = GLOBAL_NAME_SEC;
@@ -36,54 +41,45 @@ extern char *config_file;
 #endif
 
 //*****************************************************
-size_t calc_mem(FILE *fin){
+size_t calc_mem(FILE *fp){
 	size_t size_mem = 0;
-	size_t els = 0; 		// ELEMENTS
-	size_t all_chars = 0;  // CHARS
-	char ch;			// Current char
-    char prch = 0; 		// prev char
-	size_t zch = 0;		// Count '\n'
-	size_t n_struct = 0; 	// Ocunt Item & Section
-	size_t n_str = 0;		// count strings
+	size_t size_buf = SIZE_BUF; // Буфер для чтения
 
-	while((ch = fgetc(fin)) != EOF){
-		if(ch == comment_char[0]){
-			while((ch = fgetc(fin)) != EOF){
-				/* prch = ch; */
-				if(ch == '\n')
-					break;
-			}
-			continue;
+	char *buf = (char*)malloc(size_buf + 1); // для чтения fread
+	if(!buf)
+		return 0;
+
+	while(!(readline(&buf, &size_buf, fp))) {
+		char *name = NULL;
+	    char *val = NULL;
+
+		int mode = splitline(buf, &name, &val);
+		switch (mode){
+			case COMMENT_LINE: // комент
+			case EMPTY_LINE: // пустая строка
+				break;
+			case SECTION_LINE:
+				// S E C T I O N
+				size_mem += sizeof(Section) + strlen(name) + 1;
+				break;
+			case OPTION_LINE:
+				// O P T I O N S
+				if(strcmp(name, "Include") != 0){
+					size_mem += sizeof(Item) + strlen(name) + 1 + strlen(val) + 1;
+				}
+				break;
 		}
-        if(ch == '\n'){
-			if(prch == 0 || prch == '\n')
-			   continue;
+	}
+	free(buf);
+	if(!feof(fp))
+		return 0;
 
-			els++;
-			zch++;
-		}else if(ch == '='){
-			zch++;
-		}else if(ch != '[' && ch != ']'){
-			all_chars++;
-		}
-		prch = ch;
-    }
-	els++; // + struct GLOBAL section
-
-	n_struct = els * sizeof(Item);// + sizeof(Conf); // Количество эдементов + (элемент GLOBAL) на рахмер. размер Item и Section равны
-	n_str = sizeof(char) * (all_chars + zch + strlen(default_name) + 1); // Количество символов + количество \n
-	size_mem = n_struct + n_str;
-
-#ifdef Debug
-	printf("calculate mem: n_struct %ld = %ld\tn_str %ld\tall_chars %ld\tzch %ld\n", els, n_struct, n_str, all_chars, zch);
-	printf("total calculate mem: %ld\n", size_mem);
-#endif
-	fseek(fin, 0, SEEK_SET);
+	fseek(fp, 0L, SEEK_SET);
 	return size_mem;
 }
 
 //*****************************************************
-Conf *init_conf(char *namefile){
+Conf *init_conf(char *namefile, int fl_create_default){
 	Conf *c = NULL;
 	XMEM *xm = NULL;
 
@@ -94,9 +90,11 @@ Conf *init_conf(char *namefile){
 	// init pool
 	size_t size_mem = calc_mem(fp);
 	size_mem += sizeof(Conf);
+	if(fl_create_default)
+		size_mem += strlen(default_name) + 1 + sizeof(Section); // default section
 
 	if(!(xm = init_block(size_mem))){
-		printf("Error init mem\n");
+		fprintf(stderr, "Error init mem\n");
 		return NULL;
 	}
 	c = (Conf*)xmalloc(xm, sizeof(Conf));
@@ -171,12 +169,12 @@ int splitline(char *buf, char **name, char **value){
 	char *pos_dies = strchr(trimbuf, comment_char[0]);
 	if(pos_dies){		// Любой текст после #, игнорируем
 		pos_dies[0] = '\0';
-		if( ! strlen(trimbuf) ) return COMMENT_LINE; // Comment
+		if( ! strlen(trimbuf) )
+			return COMMENT_LINE; // Comment
 	}
 
 	char *pos_sec = strchr(trimbuf, start_section_char[0]);
 	char *pos_end_sec = strchr(trimbuf, stop_section_char[0]);
-
 
 	if(( (!pos_dies) && pos_sec && pos_end_sec && (pos_sec < pos_end_sec)) || // либо НЕ определен # и позиции секции
 		(pos_dies
@@ -211,10 +209,15 @@ Section *create_default_sec(Conf *c){
 
 	rez = (Section*)xmalloc(c->pool, sizeof(Section));
 	if(!rez){
-		printf("Error create DEFAULT section\n");
+		fprintf(stderr, "Error create DEFAULT section\n");
 		return rez;
 	}
 	rez->name = (char*)xstrdup(c->pool, default_name);
+
+#ifdef Debug
+	fprintf(stderr, "Create default section %ld + %ld\n", sizeof(Section), strlen(default_name));
+#endif
+
 	rez->next = NULL;
 	rez->itemlist = NULL;
 	c->g_sec = rez;
@@ -269,23 +272,25 @@ int case_option(Conf *c, Section *sec, const char *name, const char *val){
 Conf* read_conf(char *namef, Conf *prev_conf){
 	// Возможен рекурсивный вызов при "Include = имяфайла"
 
+	Conf *c = NULL;
 	Section *cur_sec = NULL;
-	/* Item *item; */
 	size_t size_buf = SIZE_BUF; // Буфер для чтения
 
-	Conf *c = init_conf(namef);
-	if(!c)
-		return NULL;
-
-	if(!prev_conf){
-		cur_sec = create_default_sec(c);
-	}else{
+	if(prev_conf){
+		c = init_conf(namef, 0);
+		if(!c)
+			return NULL;
 		cur_sec = prev_conf->g_sec;
+	}else{
+		c = init_conf(namef, 1);
+		if(!c)
+			return NULL;
+		cur_sec = create_default_sec(c);
 	}
 
 	char *buf = (char*)malloc(size_buf + 1); // для чтения fread
 	if(!buf) {
-		printf("Error malloc buf for read config\n");
+		fprintf(stderr, "Error malloc buf for read config\n");
 		fclose(c->fp);
 		delete_config(c);
 		return NULL;

@@ -21,8 +21,8 @@ int main(int argc, char* argv[]){
 	//start_section_char = "[";
 	//stop_section_char = "]";
 
-	if(argc < 2){
-		printf("USSAGE: %s name_config_file\n", argv[0]);
+	if(argc < 4){
+		printf("USSAGE: %s <name_config_file> <section_name> <param_name>\n", argv[0]);
 		return 0;
 	}
 
@@ -36,8 +36,8 @@ int main(int argc, char* argv[]){
 	char* val;
 
 	print_conf(conf);
-	if(get_val_as_str(conf, "Session", "session.serialize_handler", &val)){
-		printf("---------\nsession.serialize_handler = %s\n---------\n", val);
+	if(get_val_as_str(conf, argv[2], argv[3], &val)){
+		printf("---------\nsection: %s; %s = %s\n---------\n", argv[2], argv[3], val);
 	}else{
 		printf("FIND ERROR\n");
 	}

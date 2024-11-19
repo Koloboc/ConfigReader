@@ -52,6 +52,7 @@ target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug)
 set(PROJECT_TARGET_TEST test1)
 file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)
 file(GLOB TEST_SOURCES test/*.c)
+
 add_executable(${PROJECT_TARGET_TEST} ${TEST_HEADERS} ${TEST_SOURCES})
 target_include_directories(${PROJECT_TARGET_TEST} PUBLIC ${INCLUDES_DIR})
 target_link_libraries(${PROJECT_TARGET_TEST} ${PROJECT_TARGET})
