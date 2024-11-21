@@ -12,7 +12,7 @@
 XMEM* init_block(size_t size){
 	XMEM *block = NULL;
 	if(size <= 0){
-		printf("worng size mem init\n");
+		fprintf(stderr, "worng size mem init\n");
 		return NULL;
 	}
 	block = (XMEM*)malloc(size + sizeof(XMEM));
@@ -25,7 +25,7 @@ XMEM* init_block(size_t size){
 	block->next = NULL;
 	block->mem = ((char*)block) + sizeof(XMEM);
 #ifdef Debug
-	printf("Инициализируем память %ld + xmem (%ld) = %ld\n", size, sizeof(XMEM), size + sizeof(XMEM));
+	fprintf(stdout, "Инициализируем память %ld + xmem (%ld) = %ld\n", size, sizeof(XMEM), size + sizeof(XMEM));
 #endif
 
 	return block;
@@ -35,7 +35,7 @@ XMEM* init_block(size_t size){
 void couple_block(XMEM *pool, XMEM *block){
 	XMEM *p = pool;
 	if(!p){
-		printf("Wrong pool pointer!\n");
+		fprintf(stderr, "Wrong pool pointer!\n");
 		return;
 	}
 
@@ -43,7 +43,7 @@ void couple_block(XMEM *pool, XMEM *block){
 		p = p->next;
 
 	if(!block){
-		printf("Wrong block pointer\n");
+		fprintf(stderr, "Wrong block pointer\n");
 		return;
 	}
 
@@ -59,7 +59,7 @@ void gxfree(XMEM *ptr){
 	while(ptr){
 		next = ptr->next;
 #ifdef Debug
-		printf("delete size: %ld, xmem: %ld, ALL delete mem: %ld\n", ptr->size, sizeof(XMEM), ptr->size + sizeof(XMEM));
+		fprintf(stdout, "delete size: %ld, xmem: %ld, ALL delete mem: %ld\n", ptr->size, sizeof(XMEM), ptr->size + sizeof(XMEM));
 #endif
 		free(ptr);
 		ptr = next;
@@ -72,19 +72,19 @@ char *xmalloc(XMEM *pxmem, size_t size){
 	char *rez = NULL;
 
 	if(!pxmem || !(pxmem->mem)){
-		printf("Error allocate mem. Wrong pxmem\n");
+		fprintf(stderr, "Error allocate mem. Wrong pxmem\n");
 		return rez;
 	}
 
 	if(size <= 0 || size > pxmem->free){
-		printf("Error allocate mem. requested: %ld bytes, but free only: %ld\n", size, pxmem->free);
+		fprintf(stderr, "Error allocate mem. requested: %ld bytes, but free only: %ld\n", size, pxmem->free);
 		return rez;
 	}
 
 	rez = pxmem->mem + (pxmem->size - pxmem->free);
 	pxmem->free = pxmem->free - size;
 #ifdef Debug
-	printf("alloc size:%ld\t Allsize:%ld\tfree:%ld\n", size, pxmem->size, pxmem->free);
+	fprintf(stdout, "alloc size:%ld\t Allsize:%ld\tfree:%ld\n", size, pxmem->size, pxmem->free);
 #endif
 	return rez;
 }
@@ -101,7 +101,7 @@ char *xstrdup(XMEM *pxmem, const char *str){
 	}
 	strcpy(newstr, str);
 #ifdef Debug
-	printf("copy: %s\n", newstr);
+	fprintf(stdout, "copy: %s\n", newstr);
 #endif
 	return newstr;
 }

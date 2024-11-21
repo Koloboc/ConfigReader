@@ -35,7 +35,7 @@ int main(int argc, char* argv[]){
 
 	char* val;
 
-	print_conf(conf);
+	/* print_conf(conf); */
 	if(get_val_as_str(conf, argv[2], argv[3], &val)){
 		printf("---------\nsection: %s; %s = %s\n---------\n", argv[2], argv[3], val);
 	}else{

@@ -170,7 +170,7 @@ Section *create_default_sec(Conf *c){
 	rez->name = (char*)xstrdup(c->pool, default_name);
 
 #ifdef Debug
-	fprintf(stderr, "Create default section %ld + %ld\n", sizeof(Section), strlen(default_name));
+	fprintf(stdout, "Create default section %ld + %ld\n", sizeof(Section), strlen(default_name));
 #endif
 
 	rez->next = NULL;
@@ -379,7 +379,7 @@ int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *
 void delete_config(Conf *c){
 	if(c){
 #ifdef Debug
-		printf("delete config\n");
+		fprintf(stdout, "delete config\n");
 #endif
 		gxfree(c->pool);
 	}
@@ -393,14 +393,10 @@ void print_conf(Conf *c){
 	while(c){
 		Section *cursec = c->g_sec;
 		while(cursec){
-#ifdef Debug
-			printf("Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
-#endif
+			fprintf(stdout, "Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
 			curitem = cursec->itemlist;
 			while(curitem){
-#ifdef Debug
-				printf("\t%s = %s\n", curitem->name, curitem->value);
-#endif
+				fprintf(stdout, "\t%s = %s\n", curitem->name, curitem->value);
 				curitem = curitem->next;
 			}
 			cursec = cursec->next;
@@ -422,13 +418,11 @@ void reread_conf(int sig){
 	}
 
 #ifdef Debug
-	printf("reread config: %s\n", config_file);
+	fprintf(stdout, "reread config: %s\n", config_file);
 #endif
 	conf = read_conf(config_file, NULL);
 	if(!conf){
-#ifdef Debug
-		printf("error parse config %s\n", config_file);
-#endif
+		fprintf(stderr, "error parse config %s\n", config_file);
 		delete_config(conf);
 		exit(EXIT_FAILURE);
 	}
