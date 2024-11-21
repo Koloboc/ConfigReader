@@ -64,7 +64,7 @@ size_t calc_mem(FILE *fp){
 				break;
 			case OPTION_LINE:
 				// O P T I O N S
-				if(strcmp(name, "Include") != 0){
+				if(strcasecmp(name, "Include") != 0){
 					size_mem += sizeof(Item) + strlen(name) + 1 + strlen(val) + 1;
 				}
 				break;
@@ -268,7 +268,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 				break;
 			case OPTION_LINE:
 				// I N C L U D E
-				if((strcmp(name, "Include") == 0) && val){
+				if((strcasecmp(name, "Include") == 0) && val){
 					Conf *c2 = read_conf(val, c);
 					if(!c2) exit(EXIT_FAILURE);
 					couple_block(c->pool, c2->pool);
@@ -317,7 +317,7 @@ Section* find_section(Conf *conf, const char *namesec){
 	cur_sec = conf->g_sec;
 
 	while(cur_sec){
-		if(cur_sec->name && (strcmp(cur_sec->name, namesec) == 0)){
+		if(cur_sec->name && (strcasecmp(cur_sec->name, namesec) == 0)){
 			return cur_sec;
 		}
 		cur_sec = cur_sec->next;
@@ -329,7 +329,7 @@ Section* find_section(Conf *conf, const char *namesec){
 Item *find_item(const Section *section, const char *nameitem){
 	Item *it = section->itemlist;
 	while(it){
-		if(strcmp(it->name, nameitem) == 0){
+		if(strcasecmp(it->name, nameitem) == 0){
 			return it;
 		}
 		it = it->next;
