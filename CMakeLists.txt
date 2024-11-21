@@ -45,9 +45,15 @@ endif()
 if(STOP_SECTION_CHAR)
 target_compile_options(${PROJECT_TARGET} PRIVATE -DSTOP_SECTION_CHAR=\"${STOP_SECTION_CHAR}\")
 endif()
-target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug)
+
+# Debug (+ debug information for gdb)
+#target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug)
+
+# NO Debug (+ debug information for gdb)
 # target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall)
-#target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
+
+# NO Debug (prodaction)
+target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
 
 set(PROJECT_TARGET_TEST test1)
 file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)
