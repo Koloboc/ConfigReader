@@ -105,51 +105,6 @@ Conf *init_conf(char *namefile, int fl_create_default){
 	return c;
 }
 
-//*****************************************************
-FILE* open_file(const char *namefile){
-	FILE *fp = NULL;
-	if(!namefile) {
-		fprintf(stderr, "Error open config file (no name)\n");
-		return NULL;
-	}
-
-	if(! (fp = fopen(namefile, "r"))) {
-		char *err = strerror(errno);
-		fprintf(stderr, "Error open config file settings: %s\n", namefile);
-		fprintf(stderr, "%s", err);
-		return NULL;
-	}
-	return fp;
-}
-
-//*****************************************************
-int readline(char **buf, size_t *sizebuf, FILE *fd){
-	// Читаем строку в буфер из файла.
-	// Если строка длинная, увеличиваем размер буфера
-	size_t used_buf;
-	if(!fgets(*buf, *sizebuf, fd))
-		return 1; // Error
-		// Если дляинна прочитанной стоки равна размеру буфера - \0,
-		// увеличиваем буфер и дочитываем строку
-	while((used_buf = strlen(*buf)) == (--(*sizebuf)))
-	{
-		if((*sizebuf + SIZE_BUF) > MAX_SIZE_BUF){
-			perror("achieved MAX_SIZE_BUF: ");
-			return 1; // Error
-		}
-		*buf = (char*)realloc(*buf, *sizebuf += SIZE_BUF);
-#ifdef Debug
-		printf("realoc buffer +%ld\n", *sizebuf);
-#endif
-		if(!(*buf)){
-			perror("error realoc buffer:");
-			return 1;
-		}
-		if(!fgets(*buf + used_buf, SIZE_BUF, fd))
-			continue;
-	}
-	return 0; // Ok
-}
 
 //*****************************************************
 /*
