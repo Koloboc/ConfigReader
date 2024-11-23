@@ -12,10 +12,29 @@ extern char *comment_char;
 
 /* extern Section *default_sec; */
 
-Conf* conf;
+/* Conf* conf; */
 char *config_file;
 
+//*****************************************************
+/* void reread_conf(int sig){ */
+
+/* 	if(conf) */
+/* 		delete_config(conf); */
+
+/* #ifdef Debug */
+/* 	fprintf(stdout, "Module config:conf.c REread config: %s\n", config_file); */
+/* #endif */
+/* 	conf = read_conf(config_file, NULL); */
+/* 	if(!conf){ */
+/* 		fprintf(stderr, "Error (module config:conf.c) REparse config %s\n", config_file); */
+/* 		delete_config(conf); */
+/* 		/1* exit(EXIT_FAILURE); *1/ */
+/* 	} */
+/* 	return; */
+/* } */
+
 int main(int argc, char* argv[]){
+	Conf *conf;
 	comment_char = ";";
 	/* separator_char = " "; */
 	//start_section_char = "[";
@@ -35,7 +54,7 @@ int main(int argc, char* argv[]){
 
 	char* val;
 
-	/* print_conf(conf); */
+	print_conf(conf);
 	if(get_val_as_str(conf, argv[2], argv[3], &val)){
 		printf("---------\nsection: %s; %s = %s\n---------\n", argv[2], argv[3], val);
 	}else{

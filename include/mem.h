@@ -4,10 +4,10 @@
 #include "conf.h"
 
 typedef struct XMEM{
-	char *mem;
 	size_t size;
 	size_t free;
 	struct XMEM *next;
+	char *mem;
 } XMEM;
 
 XMEM* init_block(size_t size);

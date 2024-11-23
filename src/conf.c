@@ -10,11 +10,9 @@
 char *default_name = DEF_SECTION_NAME;
 char *separator_char =  DEF_SEPARATOR_CHAR;
 char *comment_char = DEF_COMMENT_CHAR;
-/* extern char *comment_char; */
 char *start_section_char = DEF_START_SECTION_CHAR;
 char *stop_section_char = DEF_STOP_SECTION_CHAR;
 
-extern Conf* conf;
 extern char *config_file;
 extern char endline;
 extern char tab;
@@ -46,6 +44,9 @@ size_t calc_mem(FILE *fp){
 	size_t size_buf = SIZE_BUF; // Буфер для чтения
 
 	char *buf = (char*)malloc(size_buf + 1); // для чтения fread
+#ifdef DebugMem
+	fprintf(stdout, "MALLOC MEM buf %ld\n", size_buf + 1);
+#endif
 	if(!buf)
 		return 0;
 
@@ -71,6 +72,9 @@ size_t calc_mem(FILE *fp){
 		}
 	}
 	free(buf);
+#ifdef DebugMem
+	fprintf(stdout, "FREE MEM buf\n");
+#endif
 	if(!feof(fp))
 		return 0;
 
@@ -94,7 +98,7 @@ Conf *init_conf(char *namefile, int fl_create_default){
 		size_mem += strlen(default_name) + 1 + sizeof(Section); // default section
 
 	if(!(xm = init_block(size_mem))){
-		fprintf(stderr, "Error init mem\n");
+		fprintf(stderr, "Error (module config:conf.c) init mem\n");
 		return NULL;
 	}
 	c = (Conf*)xmalloc(xm, sizeof(Conf));
@@ -164,13 +168,17 @@ Section *create_default_sec(Conf *c){
 
 	rez = (Section*)xmalloc(c->pool, sizeof(Section));
 	if(!rez){
-		fprintf(stderr, "Error create DEFAULT section\n");
+		fprintf(stderr, "Error (module config:conf.c) create DEFAULT section\n");
 		return rez;
 	}
 	rez->name = (char*)xstrdup(c->pool, default_name);
+	if(!rez->name){
+		fprintf(stderr, "Error (module config:conf.c) copy name default section (but section created): %s\n", default_name);
+		return rez;
+	}
 
 #ifdef Debug
-	fprintf(stdout, "Create default section %ld + %ld\n", sizeof(Section), strlen(default_name));
+	fprintf(stdout, "Module config:conf.c create default section %ld + %ld\n", sizeof(Section), strlen(default_name));
 #endif
 
 	rez->next = NULL;
@@ -186,7 +194,15 @@ Section * case_section(Conf *c, const char *name, const char *val){
 
 	if(!newsec){ // Секция не найдена, создаем новую
 		newsec = (Section*)xmalloc(c->pool, sizeof(Section));
+		if(!newsec){
+			fprintf(stderr, "Error (module config:conf.c) create section (%ld bytes)\n", sizeof(Section));
+			return NULL;
+		}
 		newsec->name = xstrdup(c->pool, name);
+		if(!newsec->name){
+			fprintf(stderr, "Error (module config:conf.c) copy name section (%s)\n", name);
+			return newsec;
+		}
 
 		lastsection = last_sec(c);
 		if(lastsection){
@@ -205,12 +221,27 @@ int case_option(Conf *c, Section *sec, const char *name, const char *val){
 	Item *lastitem = NULL;
 	Item *item = find_item(sec, name);
 	char *v = NULL;
-	if(val)
+	if(val){
 		v = xstrdup(c->pool, val);
+		if(!v){
+			fprintf(stderr, "Error (module config:conf.c) copy value option (%s)\n", val);
+			val = NULL;
+		}
+	}
 
 	if(!item){
 		item = (Item*)xmalloc(c->pool, sizeof(Item));
+		if(!item){
+			fprintf(stderr, "Error (module config:conf.c) create item option (%ld bytes)\n", sizeof(Item));
+			return 1; // error
+		}
+
 		item->name = xstrdup(c->pool, name);
+		if(!item->name){
+			fprintf(stderr, "Error (module config:conf.c) copy name option (%s)\n", name);
+			return 1; // error
+		}
+
 		lastitem = last_item(sec->itemlist);
 		if(lastitem){
 			lastitem->next = item;
@@ -221,7 +252,7 @@ int case_option(Conf *c, Section *sec, const char *name, const char *val){
 	if(val){
 		item->value = v;
 	}
-	return 0;
+	return 0; // NO error
 }
 //*****************************************************
 Conf* read_conf(char *namef, Conf *prev_conf){
@@ -244,8 +275,11 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 	}
 
 	char *buf = (char*)malloc(size_buf + 1); // для чтения fread
+#ifdef DebugMem
+	fprintf(stdout, "MALLOC MEM buf %ld\n", size_buf + 1);
+#endif
 	if(!buf) {
-		fprintf(stderr, "Error malloc buf for read config\n");
+		fprintf(stderr, "Error (module config:conf.c) malloc buf for read config\n");
 		fclose(c->fp);
 		delete_config(c);
 		return NULL;
@@ -280,13 +314,16 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 		}
 	}
 	free(buf);
+#ifdef DebugMem
+	fprintf(stdout, "FREE MEM buf\n");
+#endif
 	if(!feof(c->fp))
 	{
-		fprintf(stderr, "Ошибка чтения файла\n");
-		fclose(c->fp);
-		return NULL;
+		fprintf(stderr, "Error (module config:conf.c) read config file\n");
+		/* fclose(c->fp); */
+		/* return NULL; */
 	}
-	fclose(c->fp);
+	/* fclose(c->fp); */
 	return c;
 }
 
@@ -358,7 +395,10 @@ int get_val_as_int(Conf *conf, const char *name_sec, const char *name, int *val)
 	if(get_val_as_str(conf, name_sec, name, &p_val)){
 		errno = 0;
 		*val = strtol(p_val, NULL, 10);
-		if(!errno) return 1;
+		if(!errno){
+			return 1;
+		}
+		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->INT value [%s]:%s (%s)\n", name_sec, name, p_val);
 	}
 	return 0;
 }
@@ -370,7 +410,10 @@ int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *
 	if(get_val_as_str(conf, name_sec, name, &p_val)){
 		errno = 0;
 		*val = atof(p_val);
-		if(!errno) return 1;
+		if(!errno){
+			return 1;
+		}
+		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->FLOAT value [%s]:%s (%s)\n", name_sec, name, p_val);
 	}
 	return 0;
 }
@@ -379,7 +422,7 @@ int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *
 void delete_config(Conf *c){
 	if(c){
 #ifdef Debug
-		fprintf(stdout, "delete config\n");
+		fprintf(stdout, "Module config:conf.c delete config\n");
 #endif
 		gxfree(c->pool);
 	}

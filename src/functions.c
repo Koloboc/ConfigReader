@@ -39,13 +39,13 @@ void scroll_to_endline(FILE* fin){
 FILE* open_file(const char *namefile){
 	FILE *fp = NULL;
 	if(!namefile) {
-		fprintf(stderr, "Error open config file (no name)\n");
+		fprintf(stderr, "Error (module config:functions) open config file (no name)\n");
 		return NULL;
 	}
 
 	if(! (fp = fopen(namefile, "r"))) {
 		char *err = strerror(errno);
-		fprintf(stderr, "Error open config file settings: %s\n", namefile);
+		fprintf(stderr, "Error (module config:functions) open config file settings: %s\n", namefile);
 		fprintf(stderr, "%s", err);
 		return NULL;
 	}
@@ -65,15 +65,15 @@ int readline(char **buf, size_t *sizebuf, FILE *fd){
 	while((used_buf = strlen(*buf)) == (--(*sizebuf)))
 	{
 		if((*sizebuf + SIZE_BUF) > MAX_SIZE_BUF){
-			perror("achieved MAX_SIZE_BUF: ");
+			fprintf(stderr, "Error (module config:functions): achieved MAX_SIZE_BUF\n");
 			return 1; // Error
 		}
 		*buf = (char*)realloc(*buf, *sizebuf += SIZE_BUF);
 #ifdef Debug
-		fprintf(stdout, "realoc buffer +%ld\n", *sizebuf);
+		fprintf(stdout, "Config:functions realoc buffer +%ld\n", *sizebuf);
 #endif
 		if(!(*buf)){
-			perror("error realoc buffer:");
+			fprintf(stderr, "Error (module config:functions) realoc buffer\n");
 			return 1;
 		}
 		if(!fgets(*buf + used_buf, SIZE_BUF, fd))

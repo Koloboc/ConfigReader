@@ -6,18 +6,21 @@
 #include "mem.h"
 #include "conf.h"
 
-#define DEBUG 0
+/* #define DEBUG 0 */
 
 //*****************************************************
 XMEM* init_block(size_t size){
 	XMEM *block = NULL;
 	if(size <= 0){
-		fprintf(stderr, "worng size mem init\n");
+		fprintf(stderr, "Error (module config:mem.c) Worng size mem init\n");
 		return NULL;
 	}
 	block = (XMEM*)malloc(size + sizeof(XMEM));
+#ifdef DebugMem
+	fprintf(stdout, "MALLOC MEM block %ld\n", size + sizeof(XMEM));
+#endif
 	if(!block){
-		fprintf(stderr, "Error malloc block size: %ld\n", size);
+		fprintf(stderr, "Error (module config:mem.c) malloc block size: %ld\n", size);
 		return NULL;
 	}
 	block->size = size;
@@ -25,7 +28,7 @@ XMEM* init_block(size_t size){
 	block->next = NULL;
 	block->mem = ((char*)block) + sizeof(XMEM);
 #ifdef Debug
-	fprintf(stdout, "Инициализируем память %ld + xmem (%ld) = %ld\n", size, sizeof(XMEM), size + sizeof(XMEM));
+	fprintf(stdout, "Module config:mem.c Init memory %ld + xmem (%ld) = %ld\n", size, sizeof(XMEM), size + sizeof(XMEM));
 #endif
 
 	return block;
@@ -35,7 +38,7 @@ XMEM* init_block(size_t size){
 void couple_block(XMEM *pool, XMEM *block){
 	XMEM *p = pool;
 	if(!p){
-		fprintf(stderr, "Wrong pool pointer!\n");
+		fprintf(stderr, "Error (module config:mem.c) Wrong pool pointer!\n");
 		return;
 	}
 
@@ -43,7 +46,7 @@ void couple_block(XMEM *pool, XMEM *block){
 		p = p->next;
 
 	if(!block){
-		fprintf(stderr, "Wrong block pointer\n");
+		fprintf(stderr, "Error (module config:mem.c) Wrong block pointer\n");
 		return;
 	}
 
@@ -59,9 +62,12 @@ void gxfree(XMEM *ptr){
 	while(ptr){
 		next = ptr->next;
 #ifdef Debug
-		fprintf(stdout, "delete size: %ld, xmem: %ld, ALL delete mem: %ld\n", ptr->size, sizeof(XMEM), ptr->size + sizeof(XMEM));
+		fprintf(stdout, "Module config:mem.c delete size: %ld, xmem: %ld, ALL delete mem: %ld\n", ptr->size, sizeof(XMEM), ptr->size + sizeof(XMEM));
 #endif
 		free(ptr);
+#ifdef DebugMem
+		fprintf(stdout, "Free ptr (xmem)\n");
+#endif
 		ptr = next;
 	}
 	return;
@@ -72,19 +78,19 @@ char *xmalloc(XMEM *pxmem, size_t size){
 	char *rez = NULL;
 
 	if(!pxmem || !(pxmem->mem)){
-		fprintf(stderr, "Error allocate mem. Wrong pxmem\n");
+		fprintf(stderr, "Error (module config:mem.c) allocate mem. Wrong pxmem\n");
 		return rez;
 	}
 
 	if(size <= 0 || size > pxmem->free){
-		fprintf(stderr, "Error allocate mem. requested: %ld bytes, but free only: %ld\n", size, pxmem->free);
+		fprintf(stderr, "Error (module config:mem.c) allocate mem. requested: %ld bytes, but free only: %ld\n", size, pxmem->free);
 		return rez;
 	}
 
 	rez = pxmem->mem + (pxmem->size - pxmem->free);
 	pxmem->free = pxmem->free - size;
 #ifdef Debug
-	fprintf(stdout, "alloc size:%ld\t Allsize:%ld\tfree:%ld\n", size, pxmem->size, pxmem->free);
+	fprintf(stdout, "Module config:mem.c alloc size:%ld\t Allsize:%ld\tfree:%ld\n", size, pxmem->size, pxmem->free);
 #endif
 	return rez;
 }
@@ -96,12 +102,12 @@ char *xstrdup(XMEM *pxmem, const char *str){
 
 	char *newstr = xmalloc(pxmem, strlen(str) + 1);
 	if(!newstr){
-		fprintf(stderr, "Error copy string: size string very big! free: %ld, size string: %ld, str = '%s'\n", pxmem->free, strlen(str) + 1, str);
-		exit(EXIT_FAILURE);
+		fprintf(stderr, "Error (module config:mem.c) copy string: size string very big! free: %ld, size string: %ld, str = '%s'\n", pxmem->free, strlen(str) + 1, str);
+		return newstr;
 	}
 	strcpy(newstr, str);
 #ifdef Debug
-	fprintf(stdout, "copy: %s\n", newstr);
+	fprintf(stdout, "Module config:mem.c copy: %s\n", newstr);
 #endif
 	return newstr;
 }
