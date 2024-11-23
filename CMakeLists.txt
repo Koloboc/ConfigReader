@@ -47,19 +47,20 @@ target_compile_options(${PROJECT_TARGET} PRIVATE -DSTOP_SECTION_CHAR=\"${STOP_SE
 endif()
 
 # Debug (+ debug information for gdb)
-#target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug)
+target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug -DDebugMem)
 
 # NO Debug (+ debug information for gdb)
 # target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall)
 
 # NO Debug (prodaction)
-target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
+# target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
 
 set(PROJECT_TARGET_TEST test1)
 file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)
 file(GLOB TEST_SOURCES test/*.c)
 
 add_executable(${PROJECT_TARGET_TEST} ${TEST_HEADERS} ${TEST_SOURCES})
+target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -g -Wall -DDebug)
 target_include_directories(${PROJECT_TARGET_TEST} PUBLIC ${INCLUDES_DIR})
 target_link_libraries(${PROJECT_TARGET_TEST} ${PROJECT_TARGET})
 
