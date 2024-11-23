@@ -452,23 +452,3 @@ void print_conf(Conf *c){
 
 }
 
-//*****************************************************
-void reread_conf(int sig){
-
-	if(conf){
-		delete_config(conf);
-		conf = NULL;
-	}
-
-#ifdef Debug
-	fprintf(stdout, "reread config: %s\n", config_file);
-#endif
-	conf = read_conf(config_file, NULL);
-	if(!conf){
-		fprintf(stderr, "error parse config %s\n", config_file);
-		delete_config(conf);
-		exit(EXIT_FAILURE);
-	}
-	return;
-}
-
