@@ -54,30 +54,36 @@ FILE* open_file(const char *namefile){
 
 
 //*****************************************************
-int readline(char **buf, size_t *sizebuf, FILE *fd){
+int readline(char **buf, size_t **sizebuf, FILE *fd){
 	// Читаем строку в буфер из файла.
 	// Если строка длинная, увеличиваем размер буфера
 	size_t used_buf;
-	if(!fgets(*buf, *sizebuf, fd))
+	if(!fgets(*buf, **sizebuf, fd))
 		return 1; // Error
+
 		// Если дляинна прочитанной стоки равна размеру буфера - \0,
 		// увеличиваем буфер и дочитываем строку
-	while((used_buf = strlen(*buf)) == (--(*sizebuf)))
+	while((used_buf = strlen(*buf)) == (--(**sizebuf)))
 	{
-		if((*sizebuf + SIZE_BUF) > MAX_SIZE_BUF){
+		if((**sizebuf + SIZE_BUF) > MAX_SIZE_BUF){
 			fprintf(stderr, "Error (module config:functions): achieved MAX_SIZE_BUF\n");
 			return 1; // Error
 		}
-		*buf = (char*)realloc(*buf, *sizebuf += SIZE_BUF);
+
+		*buf = (char*)realloc(*buf, **sizebuf += SIZE_BUF);
+
 #ifdef Debug
-		fprintf(stdout, "Config:functions realoc buffer +%ld\n", *sizebuf);
+		fprintf(stdout, "Config:functions realoc buffer +%ln\n", *sizebuf);
 #endif
+
 		if(!(*buf)){
 			fprintf(stderr, "Error (module config:functions) realoc buffer\n");
-			return 1;
+			return 1; // Error
 		}
+
 		if(!fgets(*buf + used_buf, SIZE_BUF, fd))
 			continue;
+
 	}
 	return 0; // Ok
 }

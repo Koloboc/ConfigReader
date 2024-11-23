@@ -39,22 +39,14 @@ extern char space;
 #endif
 
 //*****************************************************
-size_t calc_mem(FILE *fp){
+size_t calc_mem(FILE *fp, char **buf, size_t **szbuf){
 	size_t size_mem = 0;
-	size_t size_buf = SIZE_BUF; // Буфер для чтения
 
-	char *buf = (char*)malloc(size_buf + 1); // для чтения fread
-#ifdef DebugMem
-	fprintf(stdout, "MALLOC MEM buf %ld\n", size_buf + 1);
-#endif
-	if(!buf)
-		return 0;
-
-	while(!(readline(&buf, &size_buf, fp))) {
+	while(!(readline(buf, szbuf, fp))) {
 		char *name = NULL;
 	    char *val = NULL;
 
-		int mode = splitline(buf, &name, &val);
+		int mode = splitline(*buf, &name, &val);
 		switch (mode){
 			case COMMENT_LINE: // комент
 			case EMPTY_LINE: // пустая строка
@@ -71,10 +63,11 @@ size_t calc_mem(FILE *fp){
 				break;
 		}
 	}
-	free(buf);
+
 #ifdef DebugMem
 	fprintf(stdout, "FREE MEM buf\n");
 #endif
+
 	if(!feof(fp))
 		return 0;
 
@@ -83,7 +76,7 @@ size_t calc_mem(FILE *fp){
 }
 
 //*****************************************************
-Conf *init_conf(char *namefile, int fl_create_default){
+Conf *init_conf(char *namefile, char **buf, size_t **szbuf, int fl_create_default){
 	Conf *c = NULL;
 	XMEM *xm = NULL;
 
@@ -92,7 +85,7 @@ Conf *init_conf(char *namefile, int fl_create_default){
 		return NULL;
 
 	// init pool
-	size_t size_mem = calc_mem(fp);
+	size_t size_mem = calc_mem(fp, buf, szbuf);
 	size_mem += sizeof(Conf);
 	if(fl_create_default)
 		size_mem += strlen(default_name) + 1 + sizeof(Section); // default section
@@ -101,6 +94,7 @@ Conf *init_conf(char *namefile, int fl_create_default){
 		fprintf(stderr, "Error (module config:conf.c) init mem\n");
 		return NULL;
 	}
+
 	c = (Conf*)xmalloc(xm, sizeof(Conf));
 	c->pool = xm;
 	c->fp = fp;
@@ -260,29 +254,30 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 
 	Conf *c = NULL;
 	Section *cur_sec = NULL;
-	size_t size_buf = SIZE_BUF; // Буфер для чтения
+	size_t szb = SIZE_BUF; // Размер буфера для чтения
+	size_t *size_buf = &szb;
+
+	char *buf = (char*)malloc(*size_buf); // Буфер для чтения fread
+
+#ifdef DebugMem
+	fprintf(stdout, "MALLOC MEM buf %ln\n", size_buf);
+#endif
+
+	if(!buf) {
+		fprintf(stderr, "Error (module config:conf.c) malloc buf for read config\n");
+		return NULL;
+	}
 
 	if(prev_conf){
-		c = init_conf(namef, 0);
+		c = init_conf(namef, &buf, &size_buf, 0);
 		if(!c)
 			return NULL;
 		cur_sec = prev_conf->g_sec;
 	}else{
-		c = init_conf(namef, 1);
+		c = init_conf(namef, &buf, &size_buf, 1);
 		if(!c)
 			return NULL;
 		cur_sec = create_default_sec(c);
-	}
-
-	char *buf = (char*)malloc(size_buf + 1); // для чтения fread
-#ifdef DebugMem
-	fprintf(stdout, "MALLOC MEM buf %ld\n", size_buf + 1);
-#endif
-	if(!buf) {
-		fprintf(stderr, "Error (module config:conf.c) malloc buf for read config\n");
-		fclose(c->fp);
-		delete_config(c);
-		return NULL;
 	}
 
 	while(!(readline(&buf, &size_buf, c->fp))) {
@@ -421,9 +416,13 @@ int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *
 //*****************************************************
 void delete_config(Conf *c){
 	if(c){
+		if(c->fp)
+			fclose(c->fp);
+
 #ifdef Debug
 		fprintf(stdout, "Module config:conf.c delete config\n");
 #endif
+
 		gxfree(c->pool);
 	}
 	c = NULL;

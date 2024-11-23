@@ -61,13 +61,17 @@ void gxfree(XMEM *ptr){
 
 	while(ptr){
 		next = ptr->next;
+
 #ifdef Debug
 		fprintf(stdout, "Module config:mem.c delete size: %ld, xmem: %ld, ALL delete mem: %ld\n", ptr->size, sizeof(XMEM), ptr->size + sizeof(XMEM));
 #endif
+
 		free(ptr);
+
 #ifdef DebugMem
 		fprintf(stdout, "Free ptr (xmem)\n");
 #endif
+
 		ptr = next;
 	}
 	return;

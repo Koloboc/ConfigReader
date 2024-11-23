@@ -6,6 +6,6 @@
 char * trim(char *str);
 void scroll_to_endline(FILE* fin);
 FILE* open_file(const char *namefile);
-int readline(char **buf, size_t *size, FILE *fd);
+int readline(char **buf, size_t **size, FILE *fd);
 
 #endif

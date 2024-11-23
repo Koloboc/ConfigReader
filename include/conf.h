@@ -45,8 +45,8 @@ Conf* read_conf(char *namefile, Conf *prev_conf);
 
 // INTERNAL
 int splitline(char *buf, char **name, char **value);
-Conf* init_conf(char *namefile, int fl_create_default);
-size_t calc_mem(FILE *fin);
+Conf *init_conf(char *namefile, char **buf, size_t **szbuf, int fl_create_default);
+size_t calc_mem(FILE *fin, char **buf, size_t **sz);
 Item *last_item(Item *item);
 Section *last_sec(Conf *c);
 Section *create_default_sec(Conf *c);
