@@ -157,32 +157,7 @@ int splitline(char *buf, char **name, char **value){
 }
 
 //*****************************************************
-Section *create_default_sec(Conf *c){
-	Section *rez = NULL;
-
-	rez = (Section*)xmalloc(c->pool, sizeof(Section));
-	if(!rez){
-		fprintf(stderr, "Error (module config:conf.c) create DEFAULT section\n");
-		return rez;
-	}
-	rez->name = (char*)xstrdup(c->pool, default_name);
-	if(!rez->name){
-		fprintf(stderr, "Error (module config:conf.c) copy name default section (but section created): %s\n", default_name);
-		return rez;
-	}
-
-#ifdef Debug
-	fprintf(stdout, "Module config:conf.c create default section %ld + %ld\n", sizeof(Section), strlen(default_name));
-#endif
-
-	rez->next = NULL;
-	rez->itemlist = NULL;
-	c->g_sec = rez;
-	return rez;
-}
-
-//*****************************************************
-Section * case_section(Conf *c, const char *name, const char *val){
+Section * case_section(Conf *c, const char *name){
 	Section *lastsection = NULL;
 	Section *newsec = find_section(c, name);
 
@@ -198,14 +173,23 @@ Section * case_section(Conf *c, const char *name, const char *val){
 			return newsec;
 		}
 
+		// if default section
+		if(strcmp(name, default_name) == 0){
+			if(c->g_sec)
+				newsec->next = c->g_sec;
+
+			c->g_sec = newsec;
+			return newsec;
+		}
+
+		newsec->next = NULL;
+		newsec->itemlist = NULL;
+
 		lastsection = last_sec(c);
 		if(lastsection){
 			lastsection->next = newsec;
 		}else{
-			if(c->g_sec)
-				c->g_sec->next = newsec;
-			else
-				c->g_sec = newsec;
+			c->g_sec = newsec;
 		}
 	}
 	return newsec;
@@ -274,17 +258,12 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 			return NULL;
 		cur_sec = prev_conf->g_sec;
 	}else{
-		c = init_conf(namef, &buf, &size_buf, 1);
-		if(!c)
-			return NULL;
-		cur_sec = create_default_sec(c);
+		cur_sec = case_section(c, default_name);
 	}
 
 	while(!(readline(&buf, &size_buf, c->fp))) {
-		/* item = NULL; */
 		char *name = NULL;
 	    char *val = NULL;
-		/* Item *litem = NULL; */
 
 		int mode = splitline(buf, &name, &val);
 		switch (mode){
@@ -299,7 +278,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 				// I N C L U D E
 				if((strcasecmp(name, "Include") == 0) && val){
 					Conf *c2 = read_conf(val, c);
-					if(!c2) exit(EXIT_FAILURE);
+					if(!c2) return NULL;
 					couple_block(c->pool, c2->pool);
 					break;
 				}
@@ -315,10 +294,8 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 	if(!feof(c->fp))
 	{
 		fprintf(stderr, "Error (module config:conf.c) read config file\n");
-		/* fclose(c->fp); */
-		/* return NULL; */
 	}
-	/* fclose(c->fp); */
+	fclose(c->fp);
 	return c;
 }
 
@@ -416,8 +393,6 @@ int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *
 //*****************************************************
 void delete_config(Conf *c){
 	if(c){
-		if(c->fp)
-			fclose(c->fp);
 
 #ifdef Debug
 		fprintf(stdout, "Module config:conf.c delete config\n");
