@@ -244,7 +244,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 	char *buf = (char*)malloc(*size_buf); // Буфер для чтения fread
 
 #ifdef DebugMem
-	fprintf(stdout, "MALLOC MEM buf %ln\n", size_buf);
+	fprintf(stdout, "MALLOC MEM buf %ld\n", *size_buf);
 #endif
 
 	if(!buf) {
@@ -338,12 +338,12 @@ Section* find_section(Conf *conf, const char *namesec){
 Item *find_item(const Section *section, const char *nameitem){
 	Item *it = section->itemlist;
 	while(it){
-		if(strcasecmp(it->name, nameitem) == 0){
+		if(nameitem && strcasecmp(it->name, nameitem) == 0){
 			return it;
 		}
 		it = it->next;
 	}
-	return it;
+	return NULL;
 }
 
 //*****************************************************
