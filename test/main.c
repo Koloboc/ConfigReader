@@ -56,9 +56,9 @@ int main(int argc, char* argv[]){
 
 	print_conf(conf);
 	if(get_val_as_str(conf, argv[2], argv[3], &val)){
-		printf("---------\nsection: %s; %s = %s\n---------\n", argv[2], argv[3], val);
+		printf("---------\nsection: [%s] %s = %s\n---------\n", argv[2], argv[3], val);
 	}else{
-		printf("FIND ERROR\n");
+		printf("---------\nFIND ERROR: [%s] %s\n---------\n", argv[2], argv[3]);
 	}
 
 	delete_config(conf);
