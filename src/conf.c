@@ -432,7 +432,7 @@ void delete_config(Conf *c){
 void print_conf(Conf *c){
 	Item *curitem = NULL;
 
-	while(c){
+	if(c){
 		Section *cursec = c->g_sec;
 		while(cursec){
 			fprintf(stdout, "Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
@@ -443,10 +443,6 @@ void print_conf(Conf *c){
 			}
 			cursec = cursec->next;
 		}
-		if(c->pool->next)
-			c = (Conf*)(c->pool->next->mem);
-		else
-			c = NULL;
 	}
 
 }
