@@ -63,7 +63,7 @@ int readline(char **buf, size_t **sizebuf, FILE *fd){
 
 		// Если дляинна прочитанной стоки равна размеру буфера - \0,
 		// увеличиваем буфер и дочитываем строку
-	while((used_buf = strlen(*buf)) == (--(**sizebuf)))
+	while((used_buf = (strlen(*buf)) + 1) >= **sizebuf)
 	{
 		if((**sizebuf + SIZE_BUF) > MAX_SIZE_BUF){
 			fprintf(stderr, "Error (module config:functions): achieved MAX_SIZE_BUF\n");
@@ -73,7 +73,7 @@ int readline(char **buf, size_t **sizebuf, FILE *fd){
 		*buf = (char*)realloc(*buf, **sizebuf += SIZE_BUF);
 
 #ifdef Debug
-		fprintf(stdout, "Config:functions realoc buffer +%ln\n", *sizebuf);
+		fprintf(stdout, "Config:functions realoc buffer +%ld\n", **sizebuf);
 #endif
 
 		if(!(*buf)){
