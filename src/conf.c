@@ -199,13 +199,6 @@ int case_option(Conf *c, Section *sec, const char *name, const char *val){
 	Item *lastitem = NULL;
 	Item *item = find_item(sec, name);
 	char *v = NULL;
-	if(val){
-		v = xstrdup(c->pool, val);
-		if(!v){
-			fprintf(stderr, "Error (module config:conf.c) copy value option (%s)\n", val);
-			val = NULL;
-		}
-	}
 
 	if(!item){
 		item = (Item*)xmalloc(c->pool, sizeof(Item));
@@ -227,7 +220,13 @@ int case_option(Conf *c, Section *sec, const char *name, const char *val){
 			sec->itemlist = item;
 		}
 	}
+
 	if(val){
+		v = xstrdup(c->pool, val);
+		if(!v){
+			fprintf(stderr, "Error (module config:conf.c) copy value option (%s)\n", val);
+			return 1;
+		}
 		item->value = v;
 	}
 	return 0; // NO error
@@ -252,11 +251,13 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 		return NULL;
 	}
 
+	c = init_conf(namef, &buf, &size_buf, !prev_conf);
+	if(!c)
+		return NULL;
+
 	if(prev_conf){
-		c = init_conf(namef, &buf, &size_buf, 0);
-		if(!c)
-			return NULL;
 		cur_sec = prev_conf->g_sec;
+		c->g_sec = prev_conf->g_sec;
 	}else{
 		cur_sec = case_section(c, default_name);
 	}
