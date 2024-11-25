@@ -49,9 +49,8 @@ Conf *init_conf(char *namefile, char **buf, size_t **szbuf, int fl_create_defaul
 size_t calc_mem(FILE *fin, char **buf, size_t **sz);
 Item *last_item(Item *item);
 Section *last_sec(Conf *c);
-Section *create_default_sec(Conf *c);
 
-Section * case_section(Conf *c, const char *name, const char *val);
+Section * case_section(Conf *c, const char *name);
 int case_option(Conf *c, Section *sec, const char *name, const char *val);
 
 Section* find_section(Conf *conf, const char *namesec);

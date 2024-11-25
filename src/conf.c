@@ -293,7 +293,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 				break;
 			case SECTION_LINE:
 				// S E C T I O N
-				cur_sec = case_section(c, name, val);
+				cur_sec = case_section(c, name);
 				break;
 			case OPTION_LINE:
 				// I N C L U D E
