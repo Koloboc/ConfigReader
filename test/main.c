@@ -2,17 +2,6 @@
 #include "mem.h"
 #include "conf.h"
 
-//extern struct _section *default_sec;
-
-/* extern char *separator_char; */
-extern char *comment_char;
-/* extern char *start_section_char; */
-/* extern char *stop_section_char; */
-/* extern char *separator_char; */
-
-/* extern Section *default_sec; */
-
-/* Conf* conf; */
 char *config_file;
 
 //*****************************************************
@@ -35,10 +24,6 @@ char *config_file;
 
 int main(int argc, char* argv[]){
 	Conf *conf;
-	comment_char = ";";
-	/* separator_char = " "; */
-	//start_section_char = "[";
-	//stop_section_char = "]";
 
 	if(argc < 4){
 		printf("USSAGE: %s <name_config_file> <section_name> <param_name>\n", argv[0]);
@@ -64,3 +49,4 @@ int main(int argc, char* argv[]){
 	delete_config(conf);
 	return 0;
 }
+

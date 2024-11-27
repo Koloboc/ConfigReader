@@ -6,21 +6,6 @@
 #include <string.h>
 #include "mem.h"
 
-#define SIZE_BUF 512
-#define MAX_SIZE_BUF 3072
-#define DEF_COMMENT_CHAR "#"
-#define DEF_START_SECTION_CHAR "["
-#define DEF_STOP_SECTION_CHAR "]"
-#define DEF_SEPARATOR_CHAR "="
-#define DEF_SECTION_NAME "GLOBAL"
-
-
-#define EMPTY_LINE 0
-#define COMMENT_LINE 1
-#define SECTION_LINE 2
-#define OPTION_LINE 3
-#define ERROR_LINE -1
-
 typedef struct Item{
 	char 		*name;
 	char 		*value;
@@ -37,7 +22,6 @@ typedef struct _Conf{
 	struct XMEM *pool; // Обязательно Первый в структуре
 	struct Section *g_sec;
 	FILE *fp;
-	/* struct Conf *next; */
 } Conf;
 
 // PUBLIC

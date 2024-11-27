@@ -1,0 +1,44 @@
+#ifndef __DEFINES_H__
+#define __DEFINES_H__
+
+#define SIZE_BUF 512
+#define MAX_SIZE_BUF 3072
+
+#ifdef GLOBAL_NAME_SEC
+#define DEF_SECTION_NAME GLOBAL_NAME_SEC
+#else
+#define DEF_SECTION_NAME "GLOBAL"
+#endif
+
+#ifdef SEPARATOR_CHAR
+#define DEF_SEPARATOR_CHAR SEPARATOR_CHAR
+#else
+#define DEF_SEPARATOR_CHAR '='
+#endif
+
+#ifdef COMMENT_CHAR
+#define DEF_COMMENT_CHAR COMMENT_CHAR
+#else
+#define DEF_COMMENT_CHAR '#'
+#endif
+
+#ifdef START_SECTION_CHAR
+#define DEF_START_SECTION_CHAR START_SECTION_CHAR
+#else
+#define DEF_START_SECTION_CHAR '['
+#endif
+
+#ifdef STOP_SECTION_CHAR
+#define DEF_STOP_SECTION_CHAR STOP_SECTION_CHAR
+#else
+#define DEF_STOP_SECTION_CHAR ']'
+#endif
+
+
+#define EMPTY_LINE 0
+#define COMMENT_LINE 1
+#define SECTION_LINE 2
+#define OPTION_LINE 3
+#define ERROR_LINE -1
+
+#endif

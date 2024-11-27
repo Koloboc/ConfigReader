@@ -6,37 +6,12 @@
 #include "mem.h"
 #include "conf.h"
 #include "functions.h"
-
-char *default_name = DEF_SECTION_NAME;
-char *separator_char =  DEF_SEPARATOR_CHAR;
-char *comment_char = DEF_COMMENT_CHAR;
-char *start_section_char = DEF_START_SECTION_CHAR;
-char *stop_section_char = DEF_STOP_SECTION_CHAR;
+#include "defines.h"
 
 extern char *config_file;
 extern char endline;
 extern char tab;
 extern char space;
-
-#ifdef GLOBAL_NAME_SEC
-	char *default_name = GLOBAL_NAME_SEC;
-#endif
-
-#ifdef SEPARATOR_CHAR
-	char *separator_char = SEPARATOR_CHAR;
-#endif
-
-#ifdef COMMENT_CHAR
-	char *comment_char = COMMENT_CHAR;
-#endif
-
-#ifdef START_SECTION_CHAR
-	char *start_section_char = START_SECTION_CHAR;
-#endif
-
-#ifdef STOP_SECTION_CHAR
-	char *stop_section_char = STOP_SECTION_CHAR;
-#endif
 
 //*****************************************************
 size_t calc_mem(FILE *fp, char **buf, size_t **szbuf){
@@ -58,7 +33,11 @@ size_t calc_mem(FILE *fp, char **buf, size_t **szbuf){
 			case OPTION_LINE:
 				// O P T I O N S
 				if(strcasecmp(name, "Include") != 0){
-					size_mem += sizeof(Item) + strlen(name) + 1 + strlen(val) + 1;
+					size_mem += sizeof(Item);
+					if(name)
+						size_mem += strlen(name) + 1;
+					if(val)
+						size_mem += strlen(val) + 1;
 				}
 				break;
 		}
@@ -88,7 +67,7 @@ Conf *init_conf(char *namefile, char **buf, size_t **szbuf, int fl_create_defaul
 	size_t size_mem = calc_mem(fp, buf, szbuf);
 	size_mem += sizeof(Conf);
 	if(fl_create_default)
-		size_mem += strlen(default_name) + 1 + sizeof(Section); // default section
+		size_mem += strlen( DEF_SECTION_NAME ) + 1 + sizeof(Section); // default section
 
 	if(!(xm = init_block(size_mem))){
 		fprintf(stderr, "Error (module config:conf.c) init mem\n");
@@ -105,29 +84,20 @@ Conf *init_conf(char *namefile, char **buf, size_t **szbuf, int fl_create_defaul
 
 
 //*****************************************************
-/*
-  Или
-  	name - имя секции,
-  	value - не имеет значения =NULL
-  Или
-    name - имя опции,
-	value - значение опции
- */
-
 int splitline(char *buf, char **name, char **value){
 	char *val = NULL;
 	char *trimbuf = trim(buf);
 	if( ! strlen(trimbuf) ) return EMPTY_LINE; // Empty
 
-	char *pos_dies = strchr(trimbuf, comment_char[0]);
+	char *pos_dies = strchr(trimbuf, DEF_COMMENT_CHAR);
 	if(pos_dies){		// Любой текст после #, игнорируем
 		pos_dies[0] = '\0';
 		if( ! strlen(trimbuf) )
 			return COMMENT_LINE; // Comment
 	}
 
-	char *pos_sec = strchr(trimbuf, start_section_char[0]);
-	char *pos_end_sec = strchr(trimbuf, stop_section_char[0]);
+	char *pos_sec = strchr(trimbuf, DEF_START_SECTION_CHAR);
+	char *pos_end_sec = strchr(trimbuf, DEF_STOP_SECTION_CHAR);
 
 	if(( (!pos_dies) && pos_sec && pos_end_sec && (pos_sec < pos_end_sec)) || // либо НЕ определен # и позиции секции
 		(pos_dies
@@ -146,7 +116,7 @@ int splitline(char *buf, char **name, char **value){
 			return ERROR_LINE;
 		}
 	}
-	val = strchr(trimbuf, separator_char[0]);
+	val = strchr(trimbuf, DEF_SEPARATOR_CHAR);
 	if(val){
 		val[0] = '\0';
 		*value = trim(val + 1);
@@ -170,15 +140,6 @@ Section * case_section(Conf *c, const char *name){
 		newsec->name = xstrdup(c->pool, name);
 		if(!newsec->name){
 			fprintf(stderr, "Error (module config:conf.c) copy name section (%s)\n", name);
-			return newsec;
-		}
-
-		// if default section
-		if(strcmp(name, default_name) == 0){
-			if(c->g_sec)
-				newsec->next = c->g_sec;
-
-			c->g_sec = newsec;
 			return newsec;
 		}
 
@@ -259,7 +220,7 @@ Conf* read_conf(char *namef, Conf *prev_conf){
 		cur_sec = prev_conf->g_sec;
 		c->g_sec = prev_conf->g_sec;
 	}else{
-		cur_sec = case_section(c, default_name);
+		cur_sec = case_section(c, DEF_SECTION_NAME);
 	}
 
 	while(!(readline(&buf, &size_buf, c->fp))) {
@@ -411,7 +372,7 @@ void print_conf(Conf *c){
 	if(c){
 		Section *cursec = c->g_sec;
 		while(cursec){
-			fprintf(stdout, "Section name: %c%s%c\n", *start_section_char, cursec->name, *stop_section_char);
+			fprintf(stdout, "Section name: %c%s%c\n", DEF_START_SECTION_CHAR, cursec->name, DEF_STOP_SECTION_CHAR);
 			curitem = cursec->itemlist;
 			while(curitem){
 				fprintf(stdout, "\t%s = %s\n", curitem->name, curitem->value);
