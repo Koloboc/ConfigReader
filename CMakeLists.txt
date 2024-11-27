@@ -33,7 +33,7 @@ target_compile_options(${PROJECT_TARGET} PRIVATE -DGLOBAL_NAME_SEC=\"${GLOBAL_NA
 message("USE GLOBAL_NAME_SEC = ${GLOBAL_NAME_SEC}")
 endif()
 if(SEPARATOR_CHAR)
-target_compile_options(${PROJECT_TARGET} PRIVATE -DSEPARATOR_CHAR='${SEPARATOR_CHAR}')
+target_compile_options(${PROJECT_TARGET} PRIVATE -DSEPARATOR_CHAR=\'${SEPARATOR_CHAR}\')
 message("USE SEPARATOR_CHAR = ${SEPARATOR_CHAR}")
 endif()
 if(COMMENT_CHAR)
@@ -49,14 +49,21 @@ target_compile_options(${PROJECT_TARGET} PRIVATE -DSTOP_SECTION_CHAR=\'${STOP_SE
 message("USE STOP_SECTION_CHAR = ${STOP_SECTION_CHAR}")
 endif()
 
+#=============================================================================
+if(DEBUG_MEM)
+# Debug (+ debug +DebugNenory information for gdb)
+	target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug -DDebugMem)
+elseif(DEBUG)
 # Debug (+ debug information for gdb)
-target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug -DDebugMem)
+	target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug)
+else()
+# NO Debug (prodaction)
+	target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
+endif()
 
 # NO Debug (+ debug information for gdb)
 # target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall)
 
-# NO Debug (prodaction)
-# target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
 
 set(PROJECT_TARGET_TEST test1)
 file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)

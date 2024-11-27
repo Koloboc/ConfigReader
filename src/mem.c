@@ -27,7 +27,7 @@ XMEM* init_block(size_t size){
 	block->free = size;
 	block->next = NULL;
 	block->mem = ((char*)block) + sizeof(XMEM);
-#ifdef Debug
+#ifdef DebugMem
 	fprintf(stdout, "Module config:mem.c Init memory %ld + xmem (%ld) = %ld\n", size, sizeof(XMEM), size + sizeof(XMEM));
 #endif
 
@@ -62,13 +62,13 @@ void gxfree(XMEM *ptr){
 	while(ptr){
 		next = ptr->next;
 
-#ifdef Debug
+#ifdef DebugMem
 		fprintf(stdout, "Module config:mem.c delete size: %ld, xmem: %ld, ALL delete mem: %ld\n", ptr->size, sizeof(XMEM), ptr->size + sizeof(XMEM));
 #endif
 
 		free(ptr);
 
-#ifdef DebugMem
+#ifdef DebugMemMem
 		fprintf(stdout, "Free ptr (xmem)\n");
 #endif
 
@@ -93,7 +93,7 @@ char *xmalloc(XMEM *pxmem, size_t size){
 
 	rez = pxmem->mem + (pxmem->size - pxmem->free);
 	pxmem->free = pxmem->free - size;
-#ifdef Debug
+#ifdef DebugMem
 	fprintf(stdout, "Module config:mem.c alloc size:%ld\t Allsize:%ld\tfree:%ld\n", size, pxmem->size, pxmem->free);
 #endif
 	return rez;
@@ -110,7 +110,7 @@ char *xstrdup(XMEM *pxmem, const char *str){
 		return newstr;
 	}
 	strcpy(newstr, str);
-#ifdef Debug
+#ifdef DebugMem
 	fprintf(stdout, "Module config:mem.c copy: %s\n", newstr);
 #endif
 	return newstr;
