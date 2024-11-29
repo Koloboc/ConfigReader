@@ -53,9 +53,10 @@ make
 Пробелы разрешены<br>
 
 Параметры без секции попадают в глобальную секцию с именем GLOBAL<br>
-Параметр с именем 'Include' читает и добавляет в конфиг содержимое файла указанного ы значении параметра<br>
+Параметр с именем 'Include' читает и добавляет в конфиг содержимое файла и значении параметра<br>
 Пример config-файла:<br>
 ```
+
 countInputs = 16
 LAYER 16 = 	relu2
 LAYER 10  = relu2
@@ -78,26 +79,34 @@ path_weights = /path/NN/
 use_progress_ba =  0
 
 ```
-Получается такой конфиг
+conf2.txt:
 ```
-[GLOBAL]
+param_subsection = BBB
+
+[subsection]
+	param_subsection = aaa
+
+```
+Получается такоt представление конфигурации
+```
+Section name: [GLOBAL]
 	countInputs = 16
 	LAYER 16 = relu2
 	LAYER 10 = relu2
 	LAYER 5 = relu2
 	learn = 1
 	epoch = 10
-[SECTION 2]
+	param_subsection = BBB
+Section name: [SECTION 2]
 	learnDataSet = /path/
 	LR = 0.1
 	min_error = 10.321
 	epoch = 10000
-	param_subsection = BBB
 	write_log = 1
 	name_weights = w_lines4
 	path_weights = /path/NN/
 	use_progress_ba = 0
-[subsection]
+Section name: [subsection]
 	param_subsection = aaa
 
 ```

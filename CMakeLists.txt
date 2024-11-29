@@ -7,25 +7,15 @@ set(INCLUDES_DIR include)
 file(GLOB LIB_HEADERS ${INCLUDES_DIR}/*.h)
 file(GLOB LIB_SOURCES src/*.c)
 
-SET (CMAKE_LIBRARY_OUTPUT_DIRECTORY
-	${CMAKE_CURRENT_SOURCE_DIR}/bin
-        CACHE PATH
-        "Single Directory for all"
-    )
+add_library(${PROJECT_TARGET} SHARED ${LIB_SOURCES} ${LIB_HEADERS})
 
-SET (CMAKE_RUNTIME_OUTPUT_DIRECTORY
-	${CMAKE_CURRENT_SOURCE_DIR}/bin
-        CACHE PATH
-        "Single Directory for all"
-    )
+set_target_properties(${PROJECT_TARGET}
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/"
+)
 
-SET (CMAKE_ARCHIVE_OUTPUT_DIRECTORY
-	${CMAKE_CURRENT_SOURCE_DIR}/bin
-        CACHE PATH
-        "Single Directory for all"
-    )
-
-add_library(${PROJECT_TARGET} ${LIB_SOURCES} ${LIB_HEADERS})
 target_include_directories(${PROJECT_TARGET} PUBLIC ${INCLUDES_DIR})
 
 if(GLOBAL_NAME_SEC)
@@ -70,7 +60,14 @@ file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)
 file(GLOB TEST_SOURCES test/*.c)
 
 add_executable(${PROJECT_TARGET_TEST} ${TEST_HEADERS} ${TEST_SOURCES})
-target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -g -Wall -DDebug)
+elseif(DEBUG)
+# Debug (+ debug information for gdb)
+	target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -g -Wall -DDebug)
+else()
+# NO Debug (prodaction)
+	target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -Wall)
+endif()
+
 target_include_directories(${PROJECT_TARGET_TEST} PUBLIC ${INCLUDES_DIR})
 target_link_libraries(${PROJECT_TARGET_TEST} ${PROJECT_TARGET})
 
