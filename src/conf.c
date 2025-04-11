@@ -7,7 +7,6 @@
 #include "conf.h"
 #include "functions.h"
 #include "defines.h"
-#include "file.h"
 
 extern char *config_file;
 extern char endline;
@@ -18,12 +17,7 @@ extern char space;
 size_t calc_mem(FILE *fp, char **buf, size_t **szbuf){
 	size_t size_mem = 0;
 
-	std::string *b;
-	File_Conf fc("conf.txt");
-	while(b = fc.readline()){
-		*buf = b.c_str();
-		printf(stdout, "READ: %s\n", b);
-	/* while(!(readline(buf, szbuf, fp))) { */
+	while(!(readline(buf, szbuf, fp))) {
 		char *name = NULL;
 	    char *val = NULL;
 
