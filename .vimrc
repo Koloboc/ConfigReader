@@ -1,3 +1,3 @@
 
-set makeprg=make\ -C\ build
+set makeprg="clear && make\ -C\ build"
 
