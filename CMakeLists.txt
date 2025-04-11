@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.7)
-project(config)
+project(config CXX)
+set(CMAKE_BUILD_TYPE Debug)
+#set(CMAKE_CXX_STANDARD 14)
 set(PROJECT_TARGET config)
 
 set(INCLUDES_DIR include)
 
 file(GLOB LIB_HEADERS ${INCLUDES_DIR}/*.h)
-file(GLOB LIB_SOURCES src/*.c)
+file(GLOB LIB_SOURCES src/*.cpp)
 
 add_library(${PROJECT_TARGET} SHARED ${LIB_SOURCES} ${LIB_HEADERS})
 
@@ -56,7 +58,7 @@ endif()
 #=============================================================================
 set(PROJECT_TARGET_TEST test1)
 file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)
-file(GLOB TEST_SOURCES test/*.c)
+file(GLOB TEST_SOURCES test/*.cpp)
 
 add_executable(${PROJECT_TARGET_TEST} ${TEST_HEADERS} ${TEST_SOURCES})
 set_target_properties(${PROJECT_TARGET_TEST}
