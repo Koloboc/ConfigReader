@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
-project(config C)
+project(config)
 set(PROJECT_TARGET config)
 
 set(INCLUDES_DIR include)
@@ -51,11 +51,20 @@ else()
 	target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
 endif()
 
+#=============================================================================
+#=============	TEST 
+#=============================================================================
 set(PROJECT_TARGET_TEST test1)
 file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)
 file(GLOB TEST_SOURCES test/*.c)
 
 add_executable(${PROJECT_TARGET_TEST} ${TEST_HEADERS} ${TEST_SOURCES})
+set_target_properties(${PROJECT_TARGET_TEST}
+    PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin/"
+)
 if(DEBUG)
 # Debug (+ debug information for gdb)
 	target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -g -Wall -DDebug)
