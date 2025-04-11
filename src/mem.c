@@ -6,8 +6,6 @@
 #include "mem.h"
 #include "conf.h"
 
-/* #define DEBUG 0 */
-
 //*****************************************************
 XMEM* init_block(size_t size){
 	XMEM *block = NULL;

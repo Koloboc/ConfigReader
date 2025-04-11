@@ -51,16 +51,12 @@ else()
 	target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
 endif()
 
-# NO Debug (+ debug information for gdb)
-# target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall)
-
-
 set(PROJECT_TARGET_TEST test1)
 file(GLOB TEST_HEADERS ${INCLUDES_DIR}/*.h)
 file(GLOB TEST_SOURCES test/*.c)
 
 add_executable(${PROJECT_TARGET_TEST} ${TEST_HEADERS} ${TEST_SOURCES})
-elseif(DEBUG)
+if(DEBUG)
 # Debug (+ debug information for gdb)
 	target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -g -Wall -DDebug)
 else()
