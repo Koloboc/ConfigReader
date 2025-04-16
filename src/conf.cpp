@@ -1,386 +1,189 @@
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
+// #include <stdio.h>
+// #include <errno.h>
+// #include <unistd.h>
 #include <fcntl.h>
-#include <string.h>
-#include "mem.h"
+#include <string>
+#include <map>
+#include <iostream>
+#include <fstream>
+#include <algorithm>
 #include "conf.h"
 #include "functions.h"
 #include "defines.h"
 
-extern char *config_file;
-extern char endline;
-extern char tab;
-extern char space;
+Storage::Storage(){
+}
 
-//*****************************************************
-size_t calc_mem(FILE *fp, char **buf, size_t **szbuf){
-	size_t size_mem = 0;
-
-	while(!(readline(buf, szbuf, fp))) {
-		char *name = NULL;
-	    char *val = NULL;
-
-		int mode = splitline(*buf, &name, &val);
-		switch (mode){
-			case COMMENT_LINE: // комент
-			case EMPTY_LINE: // пустая строка
-				break;
-			case SECTION_LINE:
-				// S E C T I O N
-				size_mem += sizeof(Section) + strlen(name) + 1;
-				break;
-			case OPTION_LINE:
-				// O P T I O N S
-				if(strcasecmp(name, "Include") != 0){
-					size_mem += sizeof(Item);
-					if(name)
-						size_mem += strlen(name) + 1;
-					if(val)
-						size_mem += strlen(val) + 1;
-				}
-				break;
-		}
+void Storage::insert(const std::string& name_sec, const std::string &name, const std::string &val){
+	std::unordered_map<std::string, Item>::iterator sec;
+	sec = stor.find(name_sec);
+	if(sec == stor.end()){ // not faund
+		Item it{{name, val}};
+		stor[name_sec] = it;
+	}else{					// faund
+		(*sec).second.insert(std::make_pair(name, val));
 	}
+}
 
-#ifdef DebugMem
-	fprintf(stdout, "FREE MEM buf\n");
-#endif
+Conf::Conf(){
+	str_last_sec = DEF_SECTION_NAME;
+}
 
-	if(!feof(fp))
-		return 0;
+void Conf::trim(std::string &str){
+	auto fi_space = [](unsigned char ch){ return !std::isspace(ch);};
+	// trim left
+	str.erase(str.begin(), std::find_if(str.begin(), str.end(), fi_space));
 
-	fseek(fp, 0L, SEEK_SET);
-	return size_mem;
+	// trim right
+	str.erase(std::find_if(str.rbegin(), str.rend(), fi_space).base(), str.end());
+}
+
+bool Conf::add_section(const std::string &str_line, size_t pos_start_sec, size_t pos_stop_sec){
+	std::string name_sec;
+	name_sec = str_line.substr(pos_start_sec + 1, pos_stop_sec - 1);
+	trim(name_sec);
+	if(!name_sec.length())
+		return false;
+
+	str_last_sec = name_sec;
+	return true;
 }
 
 //*****************************************************
-Conf *init_conf(char *namefile, char **buf, size_t **szbuf, int fl_create_default){
-	Conf *c = NULL;
-	XMEM *xm = NULL;
+bool Conf::read_conf(char *namef){
 
-	FILE *fp = open_file(namefile);
-	if(!(fp))
-		return NULL;
+	std::string str_line;
+	size_t nopos = std::string::npos;
 
-	// init pool
-	size_t size_mem = calc_mem(fp, buf, szbuf);
-	size_mem += sizeof(Conf);
-	if(fl_create_default)
-		size_mem += strlen( DEF_SECTION_NAME ) + 1 + sizeof(Section); // default section
+	std::ifstream in(namef);
+	if(!in.is_open())
+		return false;
 
-	if(!(xm = init_block(size_mem))){
-		fprintf(stderr, "Error (module config:conf.c) init mem\n");
-		return NULL;
+
+	while(std::getline(in, str_line)){
+		std::string name;
+		std::string val;
+
+		trim(str_line);
+		// find and erase #comments
+		auto fi_comment = [](unsigned char ch){ return (ch == DEF_COMMENT_CHAR);};
+		str_line.erase(std::find_if(str_line.begin(), str_line.end(), fi_comment), str_line.end());
+		trim(str_line);
+
+		if(!str_line.length())
+			continue;
+
+		size_t pos_start_sec = str_line.find(DEF_START_SECTION_CHAR);
+		size_t pos_stop_sec = str_line.find(DEF_STOP_SECTION_CHAR);
+
+		if((pos_start_sec != nopos && pos_stop_sec != nopos) 
+				&& ((pos_start_sec + 1) < (pos_stop_sec - 1)))
+		{
+			if(add_section(str_line, pos_start_sec, pos_stop_sec))
+				continue;
+		}
+
+		size_t pos_sep = str_line.find(DEF_SEPARATOR_CHAR);
+		if(pos_sep != nopos){
+			name = str_line.substr(0, pos_sep);
+			val = str_line.substr(pos_sep+1, std::string::npos);
+
+			trim(name);
+			if(!name.length())
+				continue;
+			trim(val);
+
+			storage.insert(str_last_sec, name, val);
+		}
+
 	}
-
-	c = (Conf*)xmalloc(xm, sizeof(Conf));
-	c->pool = xm;
-	c->fp = fp;
-	c->g_sec = NULL;
-
-	return c;
+	return true;
 }
 
+////*****************************************************
+//Section* find_section(Conf *conf, const char *namesec){
+//	Section *cur_sec;
+
+//	cur_sec = conf->g_sec;
+
+//	while(cur_sec){
+//		if(cur_sec->name && (strcasecmp(cur_sec->name, namesec) == 0)){
+//			return cur_sec;
+//		}
+//		cur_sec = cur_sec->next;
+//	}
+//	return NULL;
+//}
 
 //*****************************************************
-int splitline(char *buf, char **name, char **value){
-	char *val = NULL;
-	char *trimbuf = trim(buf);
-	if( ! strlen(trimbuf) ) return EMPTY_LINE; // Empty
-
-	char *pos_dies = strchr(trimbuf, DEF_COMMENT_CHAR);
-	if(pos_dies){		// Любой текст после #, игнорируем
-		pos_dies[0] = '\0';
-		if( ! strlen(trimbuf) )
-			return COMMENT_LINE; // Comment
-	}
-
-	char *pos_sec = strchr(trimbuf, DEF_START_SECTION_CHAR);
-	char *pos_end_sec = strchr(trimbuf, DEF_STOP_SECTION_CHAR);
-
-	if(( (!pos_dies) && pos_sec && pos_end_sec && (pos_sec < pos_end_sec)) || // либо НЕ определен # и позиции секции
-		(pos_dies
-		&& pos_sec
-		&& pos_end_sec
-		&& (pos_dies > pos_end_sec) // либо Определен # и позиции секции до #
-		&& (pos_sec < pos_end_sec))) // И скобки секции [] расставлены правильно
-	{
-		// S E C T I O N
-		pos_end_sec[0] = '\0';
-		pos_sec = trim(pos_sec + 1);
-		if(strlen(pos_sec)){
-			*name = pos_sec;
-			return SECTION_LINE; // Section
-		}else{
-			return ERROR_LINE;
-		}
-	}
-	val = strchr(trimbuf, DEF_SEPARATOR_CHAR);
-	if(val){
-		val[0] = '\0';
-		*value = trim(val + 1);
-	}
-	*name = trim(trimbuf);
-
-	return OPTION_LINE;
-}
+// Item *find_item(const Section *section, const char *nameitem){
+// 	Item *it = section->itemlist;
+// 	while(it){
+// 		if(nameitem && strcasecmp(it->name, nameitem) == 0){
+// 			return it;
+// 		}
+// 		it = it->next;
+// 	}
+// 	return NULL;
+// }
 
 //*****************************************************
-Section * case_section(Conf *c, const char *name){
-	Section *lastsection = NULL;
-	Section *newsec = find_section(c, name);
-
-	if(!newsec){ // Секция не найдена, создаем новую
-		newsec = (Section*)xmalloc(c->pool, sizeof(Section));
-		if(!newsec){
-			fprintf(stderr, "Error (module config:conf.c) create section (%ld bytes)\n", sizeof(Section));
-			return NULL;
-		}
-		newsec->name = xstrdup(c->pool, name);
-		if(!newsec->name){
-			fprintf(stderr, "Error (module config:conf.c) copy name section (%s)\n", name);
-			return newsec;
-		}
-
-		newsec->next = NULL;
-		newsec->itemlist = NULL;
-
-		lastsection = last_sec(c);
-		if(lastsection){
-			lastsection->next = newsec;
-		}else{
-			c->g_sec = newsec;
-		}
-	}
-	return newsec;
-}
-
-int case_option(Conf *c, Section *sec, const char *name, const char *val){
-	Item *lastitem = NULL;
-	Item *item = find_item(sec, name);
-	char *v = NULL;
-
-	if(!item){
-		item = (Item*)xmalloc(c->pool, sizeof(Item));
-		if(!item){
-			fprintf(stderr, "Error (module config:conf.c) create item option (%ld bytes)\n", sizeof(Item));
-			return 1; // error
-		}
-
-		item->name = xstrdup(c->pool, name);
-		if(!item->name){
-			fprintf(stderr, "Error (module config:conf.c) copy name option (%s)\n", name);
-			return 1; // error
-		}
-
-		lastitem = last_item(sec->itemlist);
-		if(lastitem){
-			lastitem->next = item;
-		}else{
-			sec->itemlist = item;
-		}
-	}
-
-	if(val){
-		v = xstrdup(c->pool, val);
-		if(!v){
-			fprintf(stderr, "Error (module config:conf.c) copy value option (%s)\n", val);
-			return 1;
-		}
-		item->value = v;
-	}
-	return 0; // NO error
-}
-//*****************************************************
-Conf* read_conf(char *namef, Conf *prev_conf){
-	// Возможен рекурсивный вызов при "Include = имяфайла"
-
-	Conf *c = NULL;
-	Section *cur_sec = NULL;
-	size_t szb = SIZE_BUF; // Размер буфера для чтения
-	size_t *size_buf = &szb;
-
-	char *buf = (char*)malloc(*size_buf); // Буфер для чтения fread
-
-#ifdef DebugMem
-	fprintf(stdout, "MALLOC MEM buf %ld\n", *size_buf);
-#endif
-
-	if(!buf) {
-		fprintf(stderr, "Error (module config:conf.c) malloc buf for read config\n");
-		return NULL;
-	}
-
-	c = init_conf(namef, &buf, &size_buf, !prev_conf);
-	if(!c)
-		return NULL;
-
-	if(prev_conf){
-		cur_sec = prev_conf->g_sec;
-		c->g_sec = prev_conf->g_sec;
-	}else{
-		cur_sec = case_section(c, DEF_SECTION_NAME);
-	}
-
-	while(!(readline(&buf, &size_buf, c->fp))) {
-		char *name = NULL;
-	    char *val = NULL;
-
-		int mode = splitline(buf, &name, &val);
-		switch (mode){
-			case COMMENT_LINE: // комент
-			case EMPTY_LINE: // пустая строка
-				break;
-			case SECTION_LINE:
-				// S E C T I O N
-				cur_sec = case_section(c, name);
-				break;
-			case OPTION_LINE:
-				// I N C L U D E
-				if((strcasecmp(name, "Include") == 0) && val){
-					Conf *c2 = read_conf(val, c);
-					if(!c2) return NULL;
-					couple_block(c->pool, c2->pool);
-					break;
-				}
-				// O P T I O N S
-				case_option(c, cur_sec, name, val);
-				break;
-		}
-	}
-	free(buf);
-#ifdef DebugMem
-	fprintf(stdout, "FREE MEM buf\n");
-#endif
-	if(!feof(c->fp))
-	{
-		fprintf(stderr, "Error (module config:conf.c) read config file\n");
-	}
-	fclose(c->fp);
-	return c;
-}
+// int get_val_as_str(Conf *conf, const char *name_sec, const char *name, char **val){
+// 	Section *sec = find_section(conf, name_sec);
+// 	Item *it = NULL;
+// 	if(sec){
+// 		it = find_item(sec, name);
+// 		if(it){
+// 			*val = it->value;
+// 			return 1;
+// 		}
+// 	}
+// 	return 0;
+// }
 
 //*****************************************************
-Section *last_sec(Conf *c){
-	Section *sec = c->g_sec;
-	if(sec){
-		while(sec->next)
-			sec = sec->next;
-		return sec;
-	}
-	return NULL;
-}
+// int get_val_as_int(Conf *conf, const char *name_sec, const char *name, int *val){
+// 	char *p_val;
+
+// 	if(get_val_as_str(conf, name_sec, name, &p_val)){
+// 		errno = 0;
+// 		*val = strtol(p_val, NULL, 10);
+// 		if(!errno){
+// 			return 1;
+// 		}
+// 		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->INT value [%s]:%s (%s)\n", name_sec, name, p_val);
+// 	}
+// 	return 0;
+// }
 
 //*****************************************************
-Item *last_item(Item *item){
-	if(item){
-		while(item->next)
-			item = item->next;
-	}
-	return item;
-}
+// int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *val){
+// 	char *p_val;
+
+// 	if(get_val_as_str(conf, name_sec, name, &p_val)){
+// 		errno = 0;
+// 		*val = atof(p_val);
+// 		if(!errno){
+// 			return 1;
+// 		}
+// 		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->FLOAT value [%s]:%s (%s)\n", name_sec, name, p_val);
+// 	}
+// 	return 0;
+// }
 
 //*****************************************************
-Section* find_section(Conf *conf, const char *namesec){
-	Section *cur_sec;
-
-	cur_sec = conf->g_sec;
-
-	while(cur_sec){
-		if(cur_sec->name && (strcasecmp(cur_sec->name, namesec) == 0)){
-			return cur_sec;
+void Storage::print(){
+	for(const auto& e: stor){
+		std::cout << "[" << e.first << "]" << std::endl;
+		Item it = e.second;
+		for(const auto& v : it){
+			std::cout << "\t" << v.first << ": " << v.second << std::endl;
 		}
-		cur_sec = cur_sec->next;
+		std::cout << std::endl;
 	}
-	return NULL;
 }
 
-//*****************************************************
-Item *find_item(const Section *section, const char *nameitem){
-	Item *it = section->itemlist;
-	while(it){
-		if(nameitem && strcasecmp(it->name, nameitem) == 0){
-			return it;
-		}
-		it = it->next;
-	}
-	return NULL;
-}
-
-//*****************************************************
-int get_val_as_str(Conf *conf, const char *name_sec, const char *name, char **val){
-	Section *sec = find_section(conf, name_sec);
-	Item *it = NULL;
-	if(sec){
-		it = find_item(sec, name);
-		if(it){
-			*val = it->value;
-			return 1;
-		}
-	}
-	return 0;
-}
-
-//*****************************************************
-int get_val_as_int(Conf *conf, const char *name_sec, const char *name, int *val){
-	char *p_val;
-
-	if(get_val_as_str(conf, name_sec, name, &p_val)){
-		errno = 0;
-		*val = strtol(p_val, NULL, 10);
-		if(!errno){
-			return 1;
-		}
-		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->INT value [%s]:%s (%s)\n", name_sec, name, p_val);
-	}
-	return 0;
-}
-
-//*****************************************************
-int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *val){
-	char *p_val;
-
-	if(get_val_as_str(conf, name_sec, name, &p_val)){
-		errno = 0;
-		*val = atof(p_val);
-		if(!errno){
-			return 1;
-		}
-		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->FLOAT value [%s]:%s (%s)\n", name_sec, name, p_val);
-	}
-	return 0;
-}
-
-//*****************************************************
-void delete_config(Conf *c){
-	if(c){
-
-#ifdef Debug
-		fprintf(stdout, "Module config:conf.c delete config\n");
-#endif
-
-		gxfree(c->pool);
-	}
-	c = NULL;
-}
-
-//*****************************************************
-void print_conf(Conf *c){
-	Item *curitem = NULL;
-
-	if(c){
-		Section *cursec = c->g_sec;
-		while(cursec){
-			fprintf(stdout, "Section name: %c%s%c\n", DEF_START_SECTION_CHAR, cursec->name, DEF_STOP_SECTION_CHAR);
-			curitem = cursec->itemlist;
-			while(curitem){
-				fprintf(stdout, "\t%s = %s\n", curitem->name, curitem->value);
-				curitem = curitem->next;
-			}
-			cursec = cursec->next;
-		}
-	}
-
+void Conf::print_conf(){
+	storage.print();
 }
 

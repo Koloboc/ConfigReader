@@ -50,7 +50,7 @@ elseif(DEBUG)
 	target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall -DDebug)
 else()
 # NO Debug (prodaction)
-	target_compile_options(${PROJECT_TARGET} PRIVATE -Wall)
+	target_compile_options(${PROJECT_TARGET} PRIVATE -g -Wall)
 endif()
 
 #=============================================================================
@@ -72,7 +72,7 @@ if(DEBUG)
 	target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -g -Wall -DDebug)
 else()
 # NO Debug (prodaction)
-	target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -Wall)
+	target_compile_options(${PROJECT_TARGET_TEST} PRIVATE -g -Wall)
 endif()
 
 target_include_directories(${PROJECT_TARGET_TEST} PUBLIC ${INCLUDES_DIR})
