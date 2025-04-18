@@ -14,6 +14,15 @@
 Storage::Storage(){
 }
 
+const std::string& Storage::getval(const std::string& name_sec, const std::string& name){
+	if(auto sec_it = stor.find(name_sec) ; sec_it != stor.end()){
+		if(auto param_it = (*sec_it).second.find(name) ; param_it != (*sec_it).second.end()){
+			return (*param_it).second;
+		}
+	}
+	return ret_null_val;
+}
+
 void Storage::insert(const std::string& name_sec, const std::string &name, const std::string &val){
 	std::unordered_map<std::string, Item>::iterator sec;
 	sec = stor.find(name_sec);
@@ -100,76 +109,55 @@ bool Conf::read_conf(char *namef){
 	return true;
 }
 
-////*****************************************************
-//Section* find_section(Conf *conf, const char *namesec){
-//	Section *cur_sec;
-
-//	cur_sec = conf->g_sec;
-
-//	while(cur_sec){
-//		if(cur_sec->name && (strcasecmp(cur_sec->name, namesec) == 0)){
-//			return cur_sec;
-//		}
-//		cur_sec = cur_sec->next;
-//	}
-//	return NULL;
-//}
+//*****************************************************
+const char* Conf::get_val_as_cstr(const char *name_sec, const char *name){
+	return storage.getval(name_sec, name).c_str();
+}
 
 //*****************************************************
-// Item *find_item(const Section *section, const char *nameitem){
-// 	Item *it = section->itemlist;
-// 	while(it){
-// 		if(nameitem && strcasecmp(it->name, nameitem) == 0){
-// 			return it;
-// 		}
-// 		it = it->next;
-// 	}
-// 	return NULL;
-// }
+const std::string& 
+Conf::get_val_as_str(const std::string &name_sec, const std::string& name){
+	return storage.getval(name_sec, name);
+}
 
 //*****************************************************
-// int get_val_as_str(Conf *conf, const char *name_sec, const char *name, char **val){
-// 	Section *sec = find_section(conf, name_sec);
-// 	Item *it = NULL;
-// 	if(sec){
-// 		it = find_item(sec, name);
-// 		if(it){
-// 			*val = it->value;
-// 			return 1;
-// 		}
-// 	}
-// 	return 0;
-// }
+bool Conf::get_val_as_int(const std::string& name_sec, const std::string& name, int *val){
+	int ret;
+	std::string ansv = storage.getval(name_sec, name);
+	try{
+		ret = std::stoi(ansv);
+	}catch(...){
+		return false;
+	}
+	*val = ret;
+	return true;
+}
 
 //*****************************************************
-// int get_val_as_int(Conf *conf, const char *name_sec, const char *name, int *val){
-// 	char *p_val;
-
-// 	if(get_val_as_str(conf, name_sec, name, &p_val)){
-// 		errno = 0;
-// 		*val = strtol(p_val, NULL, 10);
-// 		if(!errno){
-// 			return 1;
-// 		}
-// 		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->INT value [%s]:%s (%s)\n", name_sec, name, p_val);
-// 	}
-// 	return 0;
-// }
+bool Conf::get_val_as_float(const std::string& name_sec, const std::string& name, float *val){
+	float ret;
+	std::string ansv = storage.getval(name_sec, name);
+	try{
+		ret = std::stof(ansv);
+	}catch(...){
+		return false;
+	}
+	*val = ret;
+	return true;
+}
 
 //*****************************************************
-// int get_val_as_float(Conf *conf, const char *name_sec, const char *name, float *val){
-// 	char *p_val;
-
-// 	if(get_val_as_str(conf, name_sec, name, &p_val)){
-// 		errno = 0;
-// 		*val = atof(p_val);
-// 		if(!errno){
-// 			return 1;
-// 		}
-// 		fprintf(stderr, "Error (module config:conf.c) transformation CHAR->FLOAT value [%s]:%s (%s)\n", name_sec, name, p_val);
-// 	}
-// 	return 0;
-// }
+bool Conf::get_val_as_double(const std::string& name_sec, const std::string& name, double *val){
+	double ret;
+	std::string ansv = storage.getval(name_sec, name);
+	try{
+		ret = std::stod(ansv);
+	}catch(...){
+		return false;
+	}
+	*val = ret;
+	return true;
+}
 
 //*****************************************************
 void Storage::print(){
