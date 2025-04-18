@@ -1,4 +1,5 @@
-let &makeprg="clear && make -C build/"
+let &makeprg="clear && cmake --build build"
+"let &makeprg="clear && make -C build/"
 
 nnoremap <F4> :wa<cr>:make!<cr>
 set tabstop=4

@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.8)
 project(config CXX)
 set(CMAKE_BUILD_TYPE Debug)
-#set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(PROJECT_TARGET config)
 
 set(INCLUDES_DIR include)
@@ -10,6 +10,8 @@ file(GLOB LIB_HEADERS ${INCLUDES_DIR}/*.h)
 file(GLOB LIB_SOURCES src/*.cpp)
 
 add_library(${PROJECT_TARGET} SHARED ${LIB_SOURCES} ${LIB_HEADERS})
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 set_target_properties(${PROJECT_TARGET}
     PROPERTIES
