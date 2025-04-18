@@ -6,7 +6,6 @@
 #include <string>
 #include <unordered_map>
  
-typedef std::unordered_map<std::string, std::string> Item;
 
 class Storage{
 	public:
@@ -17,7 +16,9 @@ class Storage{
 		const std::string& getval(const std::string&, const std::string&);
 		void print();
 	private:
-		std::unordered_map<std::string, Item> stor;
+		typedef std::unordered_map<std::string, std::string> Items;
+		typedef std::unordered_map<std::string, Items> Sections;
+		Sections stor;
 };
 
 static std::string ret_null_val{"{null}"};

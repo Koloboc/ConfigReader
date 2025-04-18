@@ -3,6 +3,7 @@
 // #include <unistd.h>
 #include <fcntl.h>
 #include <string>
+#include <string.h>
 #include <map>
 #include <iostream>
 #include <fstream>
@@ -24,13 +25,13 @@ const std::string& Storage::getval(const std::string& name_sec, const std::strin
 }
 
 void Storage::insert(const std::string& name_sec, const std::string &name, const std::string &val){
-	std::unordered_map<std::string, Item>::iterator sec;
-	sec = stor.find(name_sec);
-	if(sec == stor.end()){ // not faund
-		Item it{{name, val}};
-		stor[name_sec] = it;
-	}else{					// faund
-		(*sec).second.insert(std::make_pair(name, val));
+	Sections::iterator sec_iter;
+	sec_iter = stor.find(name_sec);
+	if(sec_iter == stor.end()){ // not find
+		Items item_it{{name, val}};
+		stor[name_sec] = item_it;
+	}else{		// find
+		(*sec_iter).second.insert_or_assign(name, val);
 	}
 }
 
@@ -110,19 +111,33 @@ bool Conf::read_conf(char *namef){
 }
 
 //*****************************************************
-const char* Conf::get_val_as_cstr(const char *name_sec, const char *name){
-	return storage.getval(name_sec, name).c_str();
+const char* Conf::get_val_as_cstr(const char *section, const char *name){
+
+	if(!section || !strlen(section))
+		return storage.getval(DEF_SECTION_NAME, name).c_str();
+	else
+		return storage.getval(section, name).c_str();
 }
 
 //*****************************************************
 const std::string& 
-Conf::get_val_as_str(const std::string &name_sec, const std::string& name){
+Conf::get_val_as_str(const std::string &section, const std::string& name){
+	std::string name_sec = section;
+
+	if(name_sec.empty())
+		name_sec = DEF_SECTION_NAME;
+
 	return storage.getval(name_sec, name);
 }
 
 //*****************************************************
-bool Conf::get_val_as_int(const std::string& name_sec, const std::string& name, int *val){
+bool Conf::get_val_as_int(const std::string& section, const std::string& name, int *val){
+	std::string name_sec = section;
 	int ret;
+
+	if(name_sec.empty())
+		name_sec = DEF_SECTION_NAME;
+
 	std::string ansv = storage.getval(name_sec, name);
 	try{
 		ret = std::stoi(ansv);
@@ -134,8 +149,13 @@ bool Conf::get_val_as_int(const std::string& name_sec, const std::string& name, 
 }
 
 //*****************************************************
-bool Conf::get_val_as_float(const std::string& name_sec, const std::string& name, float *val){
+bool Conf::get_val_as_float(const std::string& section, const std::string& name, float *val){
+	std::string name_sec = section;
 	float ret;
+
+	if(name_sec.empty())
+		name_sec = DEF_SECTION_NAME;
+
 	std::string ansv = storage.getval(name_sec, name);
 	try{
 		ret = std::stof(ansv);
@@ -147,8 +167,13 @@ bool Conf::get_val_as_float(const std::string& name_sec, const std::string& name
 }
 
 //*****************************************************
-bool Conf::get_val_as_double(const std::string& name_sec, const std::string& name, double *val){
+bool Conf::get_val_as_double(const std::string& section, const std::string& name, double *val){
+	std::string name_sec = section;
 	double ret;
+
+	if(name_sec.empty())
+		name_sec = DEF_SECTION_NAME;
+
 	std::string ansv = storage.getval(name_sec, name);
 	try{
 		ret = std::stod(ansv);
@@ -163,7 +188,7 @@ bool Conf::get_val_as_double(const std::string& name_sec, const std::string& nam
 void Storage::print(){
 	for(const auto& e: stor){
 		std::cout << "[" << e.first << "]" << std::endl;
-		Item it = e.second;
+		Items it = e.second;
 		for(const auto& v : it){
 			std::cout << "\t" << v.first << ": " << v.second << std::endl;
 		}
