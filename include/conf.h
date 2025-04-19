@@ -1,6 +1,7 @@
 #ifndef __CONF_H__
 #define __CONF_H__
 
+#include <sys/stat.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -45,9 +46,10 @@ class Conf{
 		bool add_section(const std::string &str_line, size_t pos_start_sec, size_t pos_stop_sec);
 		bool add_file_list(const char *namef);
 
+		typedef struct iof{ ino_t inode; std::string name; } iof;
 		Storage					storage;
 		std::string				str_last_sec;
-		std::list<std::string>	files;
+		std::list<ino_t>		files;
 };
 
 

@@ -1,6 +1,4 @@
-// #include <stdio.h>
-// #include <errno.h>
-// #include <unistd.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <string>
 #include <string.h>
@@ -8,7 +6,6 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
-#include <filesystem>
 
 #include "conf.h"
 #include "defines.h"
@@ -63,6 +60,7 @@ bool Conf::add_section(const std::string &str_line, size_t pos_start_sec, size_t
 //*****************************************************
 bool Conf::read_conf(const char *namef){
 
+	std::string str_save_sec;
 	std::string str_line;
 	size_t nopos = std::string::npos;
 
@@ -107,9 +105,11 @@ bool Conf::read_conf(const char *namef){
 			trim(val);
 
 			if(name == "Include"){
+				str_save_sec = str_last_sec;
 				if( ! read_conf(val.c_str()) ){
 					return false;
 				}
+				str_last_sec = str_save_sec;
 				continue;
 			}
 
@@ -121,34 +121,31 @@ bool Conf::read_conf(const char *namef){
 
 //*****************************************************
 bool Conf::add_file_list(const char *namef){
+	struct stat st;
 	std::string name(namef);
+	if(stat(namef, &st) != 0)
+		return false;
 
-
-	if(std::find(files.begin(), files.end(), name) != files.end()){
-		std::cout << "Atempt recursion load file: " << name << std::endl;
+	if(std::find(files.begin(), files.end(), st.st_ino) != files.end()){
 		return false;
 	}
-	files.push_back(name);
+	files.push_back(st.st_ino);
 	return true;
 }
 
 //*****************************************************
 const char* Conf::get_val_as_cstr(const char *section, const char *name){
-
 	if(!section || !strlen(section))
 		return storage.getval(DEF_SECTION_NAME, name).c_str();
-	else
-		return storage.getval(section, name).c_str();
+	return storage.getval(section, name).c_str();
 }
 
 //*****************************************************
 const std::string& 
 Conf::get_val_as_str(const std::string &section, const std::string& name){
 	std::string name_sec = section;
-
 	if(name_sec.empty())
 		name_sec = DEF_SECTION_NAME;
-
 	return storage.getval(name_sec, name);
 }
 
