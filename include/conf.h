@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string>
 #include <unordered_map>
+#include <list>
  
 
 class Storage{
@@ -28,7 +29,7 @@ class Conf{
 		Conf();
 		~Conf(){};
 
-		bool read_conf(char *namefile);
+		bool read_conf(const char *namefile);
 
 		const char*				get_val_as_cstr(const char *name_sec, const char *name);
 		const std::string&		get_val_as_str(const std::string& name_sec, const std::string& name);
@@ -42,9 +43,11 @@ class Conf{
 	private:
 		void trim(std::string &str);
 		bool add_section(const std::string &str_line, size_t pos_start_sec, size_t pos_stop_sec);
+		bool add_file_list(const char *namef);
 
-		Storage storage;
-		std::string str_last_sec;
+		Storage					storage;
+		std::string				str_last_sec;
+		std::list<std::string>	files;
 };
 
 

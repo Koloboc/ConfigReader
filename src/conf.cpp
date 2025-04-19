@@ -8,8 +8,9 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <filesystem>
+
 #include "conf.h"
-#include "functions.h"
 #include "defines.h"
 
 Storage::Storage(){
@@ -60,15 +61,17 @@ bool Conf::add_section(const std::string &str_line, size_t pos_start_sec, size_t
 }
 
 //*****************************************************
-bool Conf::read_conf(char *namef){
+bool Conf::read_conf(const char *namef){
 
 	std::string str_line;
 	size_t nopos = std::string::npos;
 
+	if(!add_file_list(namef))
+		return false;
+
 	std::ifstream in(namef);
 	if(!in.is_open())
 		return false;
-
 
 	while(std::getline(in, str_line)){
 		std::string name;
@@ -103,10 +106,29 @@ bool Conf::read_conf(char *namef){
 				continue;
 			trim(val);
 
+			if(name == "Include"){
+				if( ! read_conf(val.c_str()) ){
+					return false;
+				}
+				continue;
+			}
+
 			storage.insert(str_last_sec, name, val);
 		}
-
 	}
+	return true;
+}
+
+//*****************************************************
+bool Conf::add_file_list(const char *namef){
+	std::string name(namef);
+
+
+	if(std::find(files.begin(), files.end(), name) != files.end()){
+		std::cout << "Atempt recursion load file: " << name << std::endl;
+		return false;
+	}
+	files.push_back(name);
 	return true;
 }
 
