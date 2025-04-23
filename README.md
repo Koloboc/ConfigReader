@@ -4,22 +4,20 @@
 
 ## Структура папок:<br>
 ```
-├── bin                  // для бинарников (библиотеки и тесты)<br>
-│   ├── conf2.conf           // тестируемы конфиг (для удобства запуска находится здесь)<br>
-│   ├── libconfig.a          // собранная библиотека<br>
-│   ├── test1                // тестовая программа для теста библиотеки<br>
-├── build                // для сборки всего проекта <br>
-├── CMakeLists.txt<br>
-├── include              // все инклюды здесь<br>
-│   ├── conf.h<br>
-│   ├── functions.h<br>
-│   └── mem.h<br>
-├── src                  // все исходники библиотеки здксь<br>
-│   ├── conf.c<br>
-│   ├── functions.c<br>
-│   └── mem.c<br>
-└── test                // исходник тестовой программы<br>
-    └── main.c<br>
+├── bin                  // для бинарников (библиотеки и тесты)
+│   ├── conf2.conf           // тестируемы конфиг (для удобства запуска находится здесь)
+│   ├── libconfig.a          // собранная библиотека
+│   └── test1                // тестовая программа для теста библиотеки
+├── build                // для сборки всего проекта 
+├── CMakeLists.txt
+├── include              // все инклюды здесь
+│   ├── conf.h
+│   └── functions.h
+├── src                  // все исходники библиотеки здксь
+│   ├── conf.cpp
+│   └── functions.cpp
+└── test                // исходник тестовой программы
+    └── main.cpp
 ```
 
 ## Сборка<br>
@@ -42,7 +40,7 @@ make
 ### Формат config-файла<br>
 После символа '#' текст игнорируется (можно использовать как комментарий)<br>
 <br>
-Между '[' и ']' находится название секции (должно быть единственное в строке)<br>
+Между '[' и ']' находится название секции (все что за скобкой ] игнорируется)<br>
 Например: [Name Section] <br>
 Начало секции с именем 'Name Section' (пробелы разрешены)<br>
 <br>
@@ -87,7 +85,7 @@ param_subsection = BBB
 	param_subsection = aaa
 
 ```
-Получается такоt представление конфигурации
+Получается такое представление конфигурации
 ```
 Section name: [GLOBAL]
 	countInputs = 16
@@ -110,3 +108,37 @@ Section name: [subsection]
 	param_subsection = aaa
 
 ```
+##Использование в коде (пример)
+
+```
+#include <stdlib.h>
+#include <iostream>
+#include "conf.h"
+
+int main(int argc, char* argv[]){
+
+	Conf conf;      // Создаем объект 'конфигурации'
+
+	if(!conf.read_conf("file_conf.conf")){      // Читаем и парсим конфиг. Возвращает false, если ошибка
+		std::cerr << "Error open file: file_conf.conf" << std::endl;
+		return EXIT_FAILURE;
+	}
+
+	conf.print_conf();              // Печатает конфигурацию на stdout
+	const std::string sec = "ИмяСекции"
+	const std::string par = "ИмяПараметра"
+
+    // Ищем параметр и возвращаем как строку
+    // Еще варианты: (смотри в conf.h)
+
+	std::string ansv; // Результат (val)
+    if(conf.get_val_as_str(sec, par, val) // Есди не найдено, возврат false
+        printf("\n---------\nsection: [%s] %s = %s\n---------\n", sec.c_str(), par.c_str(), ansv.c_str());
+    else
+        printf("Not Found\n");
+
+	return 0;
+}
+
+```
+
