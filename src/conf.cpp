@@ -10,9 +10,6 @@
 #include "conf.h"
 #include "defines.h"
 
-Storage::Storage(){
-}
-
 const std::string& Storage::getval(const std::string& name_sec, const std::string& name){
 	if(auto sec_it = stor.find(name_sec) ; sec_it != stor.end()){
 		if(auto param_it = (*sec_it).second.find(name) ; param_it != (*sec_it).second.end()){
@@ -106,13 +103,11 @@ bool Conf::read_conf(const char *namef){
 
 			if(name == "Include"){
 				str_save_sec = str_last_sec;
-				if( ! read_conf(val.c_str()) ){
+				if( ! read_conf(val.c_str()) )
 					return false;
-				}
 				str_last_sec = str_save_sec;
 				continue;
 			}
-
 			storage.insert(str_last_sec, name, val);
 		}
 	}
@@ -141,12 +136,12 @@ const char* Conf::get_val_as_cstr(const char *section, const char *name){
 }
 
 //*****************************************************
-const std::string& 
-Conf::get_val_as_str(const std::string &section, const std::string& name){
+bool
+Conf::get_val_as_str(const std::string &section, const std::string& name, const std::string& val){
 	std::string name_sec = section;
 	if(name_sec.empty())
 		name_sec = DEF_SECTION_NAME;
-	return storage.getval(name_sec, name);
+	return storage.getval(name_sec, name).c_str() == ret_null_val ? false : true;
 }
 
 //*****************************************************

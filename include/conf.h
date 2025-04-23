@@ -11,7 +11,7 @@
 
 class Storage{
 	public:
-		Storage();
+		Storage(){};
 		~Storage(){};
 
 		void insert(const std::string&, const std::string &name, const std::string &val);
@@ -33,7 +33,7 @@ class Conf{
 		bool read_conf(const char *namefile);
 
 		const char*				get_val_as_cstr(const char *name_sec, const char *name);
-		const std::string&		get_val_as_str(const std::string& name_sec, const std::string& name);
+		bool					get_val_as_str(const std::string& name_sec, const std::string& name, const std::string& val);
 
 		bool					get_val_as_int(const std::string& name_sec, const std::string& name, int *val);
 		bool					get_val_as_float(const std::string& name_sec, const std::string& name, float *val);
